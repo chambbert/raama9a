@@ -7,9 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "setup": "npm install && npm run db:push && npm run db:generate",
     "db:push": "prisma db push",
+    "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:reset": "rm -f prisma/dev.db && npm run db:push",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .next node_modules",
+    "prebuild": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
@@ -34,5 +39,8 @@
     "tailwindcss": "^3.4.3",
     "tsx": "^4.10.5",
     "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

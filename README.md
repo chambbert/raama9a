@@ -37,43 +37,97 @@ A full-stack web application for Airbnb hosts to manage their properties, guests
 - **Styling**: Tailwind CSS (mobile-first)
 - **Icons**: Lucide React
 
-## Getting Started
+## Build & Run Contract
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 18+ (check with `node --version`)
+- npm 9+ (check with `npm --version`)
 
-### Installation
+### Quick Start (First Time Setup)
 
-1. Clone the repository:
 ```bash
-cd airbnb-host-platform
-```
+# 1. Clone and enter directory
+git clone git@github.com:chambbert/raama9a.git
+cd raama9a
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
+# 2. Copy environment file and configure
 cp .env.example .env
-```
+# Edit .env: set JWT_SECRET to a secure random value
 
-Edit `.env` and set a secure `JWT_SECRET` for production.
+# 3. One-command setup (installs deps + sets up database)
+npm run setup
 
-4. Initialize the database:
-```bash
-npx prisma db push
-```
-
-5. Start the development server:
-```bash
+# 4. Start development server
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### All Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run setup` | **First-time setup**: install deps + push DB schema + generate Prisma client |
+| `npm run dev` | Start development server (hot reload) |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server (requires build first) |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm run db:push` | Push Prisma schema to database |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:studio` | Open Prisma Studio (database GUI) |
+| `npm run db:reset` | **Destructive**: Delete database and recreate |
+| `npm run clean` | Remove .next and node_modules |
+
+### Development Workflow
+
+```bash
+# Daily development
+npm run dev
+
+# Before committing
+npm run lint && npm run typecheck
+
+# View/edit database directly
+npm run db:studio
+```
+
+### Production Deployment
+
+```bash
+# Build and start
+npm run build && npm run start
+
+# Or with environment variable
+NODE_ENV=production npm run build
+NODE_ENV=production npm run start
+```
+
+### Database Operations
+
+```bash
+# After schema changes
+npm run db:push
+
+# Reset database (WARNING: deletes all data)
+npm run db:reset
+
+# Regenerate Prisma client
+npm run db:generate
+```
+
+### Environment Variables
+
+Required in `.env`:
+- `DATABASE_URL` - Database connection (default: `file:./dev.db` for SQLite)
+- `JWT_SECRET` - **Required for production** - generate with `openssl rand -base64 32`
+
+Optional:
+- `NEXT_PUBLIC_APP_URL` - App URL (default: `http://localhost:3000`)
+- `NODE_ENV` - `development` or `production`
+
+**Never commit `.env` to version control.**
 
 ### Creating an Admin User
 
@@ -160,14 +214,19 @@ airbnb-host-platform/
 - Prisma for SQL injection prevention
 - CSRF protection middleware
 
-## Scripts
+## Git Workflow
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npx prisma db push` - Push schema to database
-- `npx prisma studio` - Open Prisma Studio
+```bash
+# Main branch is protected - always work on feature branches
+git checkout -b feature/your-feature-name
+
+# Make changes, then commit
+git add <specific-files>
+git commit -m "Description of changes"
+
+# Push and create PR
+git push -u origin feature/your-feature-name
+```
 
 ## License
 
