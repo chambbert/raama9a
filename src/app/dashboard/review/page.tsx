@@ -10,6 +10,14 @@ import { Alert } from '@/components/ui/alert'
 import { Star, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const ratingDescriptions: Record<number, string> = {
+  1: "We're sorry to hear that — we'll do better!",
+  2: 'Thanks for the honesty — we appreciate your input',
+  3: 'Solid stay! Any tips on how we can improve?',
+  4: 'Wonderful — glad you had a great time!',
+  5: 'Amazing! You made our day!',
+}
+
 export default function ReviewPage() {
   const { user } = useAuth()
   const [rating, setRating] = useState(0)
@@ -59,11 +67,11 @@ export default function ReviewPage() {
   if (submitted) {
     return (
       <div className="max-w-2xl mx-auto">
-        <Card>
+        <Card className="animate-scale-in">
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-green-500" />
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <CheckCircle className="h-10 w-10 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Thank You!
@@ -99,37 +107,36 @@ export default function ReviewPage() {
 
             {/* Star Rating */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Rating
               </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoveredRating(star)}
-                    onMouseLeave={() => setHoveredRating(0)}
-                    className="p-1 transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={cn(
-                        'h-8 w-8 transition-colors',
-                        (hoveredRating || rating) >= star
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-300'
-                      )}
-                    />
-                  </button>
-                ))}
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const isActive = (hoveredRating || rating) >= star
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoveredRating(star)}
+                      onMouseLeave={() => setHoveredRating(0)}
+                      className="p-1 transition-transform duration-200 hover:scale-125"
+                    >
+                      <Star
+                        className={cn(
+                          'h-10 w-10 transition-all duration-200',
+                          isActive
+                            ? 'text-yellow-400 fill-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]'
+                            : 'text-gray-300'
+                        )}
+                      />
+                    </button>
+                  )
+                })}
               </div>
               {rating > 0 && (
-                <p className="text-sm text-gray-500 mt-1">
-                  {rating === 5 && 'Excellent!'}
-                  {rating === 4 && 'Great!'}
-                  {rating === 3 && 'Good'}
-                  {rating === 2 && 'Fair'}
-                  {rating === 1 && 'Poor'}
+                <p className="text-sm text-gray-600 mt-2 animate-fade-in">
+                  {ratingDescriptions[rating]}
                 </p>
               )}
             </div>

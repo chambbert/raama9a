@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Edit, Trash2, MapPin } from 'lucide-react'
+import { Plus, Edit, Trash2, MapPin, X, ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import type { Sightseeing } from '@/types'
 
@@ -34,11 +34,14 @@ export default function SightseeingPage() {
     description: '',
     address: '',
     category: '',
-    imageUrl: '',
     order: 0,
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchItems = async () => {
     try {
@@ -67,9 +70,11 @@ export default function SightseeingPage() {
       description: '',
       address: '',
       category: defaultCategories[0],
-      imageUrl: '',
       order: 0,
     })
+    setImageFile(null)
+    setImagePreview(null)
+    setRemoveImage(false)
     setFormError('')
     setIsModalOpen(true)
   }
@@ -81,11 +86,44 @@ export default function SightseeingPage() {
       description: item.description,
       address: item.address || '',
       category: item.category,
-      imageUrl: item.imageUrl || '',
       order: item.order,
     })
+    setImageFile(null)
+    setImagePreview(item.imageUrl || null)
+    setRemoveImage(false)
     setFormError('')
     setIsModalOpen(true)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError('File size must be less than 5MB')
+      return
+    }
+
+    setImageFile(file)
+    setRemoveImage(false)
+    setFormError('')
+
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setRemoveImage(true)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,10 +137,24 @@ export default function SightseeingPage() {
         : '/api/sightseeing'
       const method = editingItem ? 'PUT' : 'POST'
 
+      const body = new FormData()
+      body.append('name', formData.name)
+      body.append('description', formData.description)
+      body.append('address', formData.address)
+      body.append('category', formData.category)
+      body.append('order', formData.order.toString())
+
+      if (imageFile) {
+        body.append('file', imageFile)
+      }
+
+      if (removeImage) {
+        body.append('removeImage', 'true')
+      }
+
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body,
         credentials: 'include',
       })
 
@@ -279,13 +331,56 @@ export default function SightseeingPage() {
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           />
 
-          <Input
-            id="imageUrl"
-            label="Image URL (Optional)"
-            value={formData.imageUrl}
-            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-            placeholder="https://..."
-          />
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image (Optional)
+            </label>
+
+            {imagePreview ? (
+              <div className="relative rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative h-40">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full shadow hover:bg-white transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-600" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="p-2 bg-gray-100 rounded-lg">
+                    <ImageIcon className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Click to upload an image</p>
+                    <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP or GIF (max 5MB)</p>
+                  </div>
+                </div>
+              </button>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button

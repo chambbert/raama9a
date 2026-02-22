@@ -92,12 +92,15 @@ export function DashboardSidebar() {
                   href={item.href}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative',
                     isActive
                       ? 'bg-red-50 text-red-600'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      : 'text-gray-600 hover:bg-gray-100 hover:translate-x-1'
                   )}
                 >
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-500 rounded-r-full" />
+                  )}
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>
                 </Link>

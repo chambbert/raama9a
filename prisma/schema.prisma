@@ -82,6 +82,7 @@ model Instruction {
   category  String
   title     String
   content   String
+  imageUrl  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

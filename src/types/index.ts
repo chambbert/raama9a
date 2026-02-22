@@ -48,6 +48,7 @@ export interface Instruction {
   category: string
   title: string
   content: string
+  imageUrl: string | null
   order: number
 }
 

@@ -1,36 +1,22 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  WashingMachine,
-  Utensils,
-  Sparkles,
-  Wifi,
-  Tv,
-  Thermometer,
-  ShowerHead,
-  Coffee,
-  Book,
-} from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Book } from 'lucide-react'
+import { InstructionAccordionWrapper } from './instruction-accordion-wrapper'
 
-const categoryIcons: Record<string, React.ElementType> = {
-  appliances: WashingMachine,
-  kitchen: Utensils,
-  cleaning: Sparkles,
-  wifi: Wifi,
-  entertainment: Tv,
-  heating: Thermometer,
-  bathroom: ShowerHead,
-  coffee: Coffee,
-}
-
-export default async function InstructionsPage() {
+export default async function InstructionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>
+}) {
   const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')
   }
+
+  const { highlight } = await searchParams
 
   const instructions = await prisma.instruction.findMany({
     orderBy: [{ category: 'asc' }, { order: 'asc' }],
@@ -41,9 +27,15 @@ export default async function InstructionsPage() {
     if (!acc[instruction.category]) {
       acc[instruction.category] = []
     }
-    acc[instruction.category].push(instruction)
+    acc[instruction.category].push({
+      id: instruction.id,
+      title: instruction.title,
+      content: instruction.content,
+      category: instruction.category,
+      imageUrl: instruction.imageUrl,
+    })
     return acc
-  }, {} as Record<string, typeof instructions>)
+  }, {} as Record<string, { id: string; title: string; content: string; category: string; imageUrl: string | null }[]>)
 
   const categories = Object.keys(grouped)
 
@@ -69,37 +61,11 @@ export default async function InstructionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
-          {categories.map((category) => {
-            const Icon = categoryIcons[category.toLowerCase()] || Book
-            return (
-              <div key={category}>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <Icon className="h-5 w-5 text-red-500" />
-                  </div>
-                  <h2 className="text-xl font-semibold capitalize">{category}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {grouped[category].map((instruction) => (
-                    <Card key={instruction.id}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{instruction.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div
-                          className="prose prose-sm max-w-none text-gray-600"
-                          dangerouslySetInnerHTML={{ __html: instruction.content }}
-                        />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <InstructionAccordionWrapper
+          categories={categories}
+          grouped={grouped}
+          highlight={highlight}
+        />
       )}
     </div>
   )

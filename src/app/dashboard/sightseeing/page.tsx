@@ -1,50 +1,39 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import Image from 'next/image'
-import {
-  MapPin,
-  Utensils,
-  Camera,
-  Mountain,
-  ShoppingBag,
-  Music,
-  Trees,
-  Building,
-} from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { MapPin } from 'lucide-react'
+import { SightseeingFilter } from '@/components/dashboard/sightseeing-filter'
 
-const categoryIcons: Record<string, React.ElementType> = {
-  restaurants: Utensils,
-  attractions: Camera,
-  nature: Mountain,
-  shopping: ShoppingBag,
-  nightlife: Music,
-  parks: Trees,
-  museums: Building,
-}
-
-export default async function SightseeingPage() {
+export default async function SightseeingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>
+}) {
   const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')
   }
 
+  const { highlight } = await searchParams
+
   const sightseeing = await prisma.sightseeing.findMany({
     orderBy: [{ category: 'asc' }, { order: 'asc' }],
   })
 
-  // Group by category
-  const grouped = sightseeing.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = []
-    }
-    acc[item.category].push(item)
-    return acc
-  }, {} as Record<string, typeof sightseeing>)
+  // Get unique categories in order
+  const categories = [...new Set(sightseeing.map((item) => item.category))]
 
-  const categories = Object.keys(grouped)
+  // Flatten items with serializable data
+  const allItems = sightseeing.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    category: item.category,
+    address: item.address,
+    imageUrl: item.imageUrl,
+  }))
 
   return (
     <div className="space-y-6">
@@ -68,52 +57,11 @@ export default async function SightseeingPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
-          {categories.map((category) => {
-            const Icon = categoryIcons[category.toLowerCase()] || MapPin
-            return (
-              <div key={category}>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Icon className="h-5 w-5 text-purple-500" />
-                  </div>
-                  <h2 className="text-xl font-semibold capitalize">{category}</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {grouped[category].map((item) => (
-                    <Card key={item.id} className="overflow-hidden">
-                      {item.imageUrl && (
-                        <div className="relative h-48">
-                          <Image
-                            src={item.imageUrl}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                      <CardHeader>
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-600 text-sm mb-3">
-                          {item.description}
-                        </p>
-                        {item.address && (
-                          <div className="flex items-start gap-2 text-sm text-gray-500">
-                            <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                            <span>{item.address}</span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <SightseeingFilter
+          categories={categories}
+          allItems={allItems}
+          highlight={highlight}
+        />
       )}
     </div>
   )

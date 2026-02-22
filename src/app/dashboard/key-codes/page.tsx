@@ -1,16 +1,23 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Key, Lock, AlertCircle } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Lock, AlertCircle } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
+import { KeyCodeCard } from '@/components/dashboard/key-code-card'
 
-export default async function KeyCodesPage() {
+export default async function KeyCodesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>
+}) {
   const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')
   }
+
+  const { highlight } = await searchParams
 
   // Get user's active visit
   const now = new Date()
@@ -78,31 +85,22 @@ export default async function KeyCodesPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {keyCodes.map((keyCode) => (
-            <Card key={keyCode.id} className="overflow-hidden">
-              <div className="h-2 bg-red-500" />
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <Key className="h-5 w-5 text-red-500" />
-                  </div>
-                  <CardTitle className="text-lg">{keyCode.description}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-mono font-bold tracking-wider text-gray-900">
-                    {keyCode.code}
-                  </p>
-                </div>
-                {keyCode.apartment && (
-                  <p className="text-sm text-gray-500 mt-3">
-                    For: {keyCode.apartment.name}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+          {keyCodes.map((keyCode, index) => {
+            const isMatch = highlight
+              ? keyCode.description.toLowerCase().includes(highlight.toLowerCase())
+              : false
+            return (
+              <KeyCodeCard
+                key={keyCode.id}
+                id={keyCode.id}
+                description={keyCode.description}
+                code={keyCode.code}
+                apartmentName={keyCode.apartment?.name}
+                isHighlighted={isMatch}
+                index={index}
+              />
+            )
+          })}
         </div>
       )}
     </div>

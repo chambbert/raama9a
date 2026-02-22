@@ -44,10 +44,10 @@ export const visitSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   apartmentId: z.string().min(1, 'Apartment ID is required'),
   checkIn: z.string().transform((str) => new Date(str)),
-  checkOut: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  checkOut: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
   revenue: z.number().default(0),
   costs: z.number().default(0),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
 })
 
 // KeyCode schemas
@@ -55,8 +55,8 @@ export const keyCodeSchema = z.object({
   apartmentId: z.string().min(1, 'Apartment ID is required'),
   code: z.string().min(1, 'Code is required'),
   description: z.string().min(1, 'Description is required'),
-  validFrom: z.string().optional().transform((str) => str ? new Date(str) : undefined),
-  validTo: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  validFrom: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
+  validTo: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
 })
 
 // Instruction schemas
@@ -64,6 +64,7 @@ export const instructionSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
+  imageUrl: z.string().optional().nullable(),
   order: z.number().default(0),
 })
 
