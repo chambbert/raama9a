@@ -3,14 +3,17 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me'
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
 const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY = '7d'
 
 export interface JWTPayload {
   userId: string
   email: string
-  role: 'ADMIN' | 'CLIENT'
+  role: 'ADMIN' | 'CLIENT' | 'CLEANER'
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -84,6 +87,14 @@ export async function requireAuth() {
 export async function requireAdmin() {
   const user = await getCurrentUser()
   if (!user || user.role !== 'ADMIN') {
+    throw new Error('Forbidden')
+  }
+  return user
+}
+
+export async function requireCleaner() {
+  const user = await getCurrentUser()
+  if (!user || user.role !== 'CLEANER') {
     throw new Error('Forbidden')
   }
   return user

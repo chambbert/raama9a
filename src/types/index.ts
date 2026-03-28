@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'CLIENT'
+export type Role = 'ADMIN' | 'CLIENT' | 'CLEANER'
 
 export interface User {
   id: string
@@ -23,6 +23,7 @@ export interface Visit {
   id: string
   userId: string
   apartmentId: string
+  cleanerId: string | null
   checkIn: Date
   checkOut: Date | null
   revenue: number
@@ -31,6 +32,34 @@ export interface Visit {
   createdAt: Date
   user?: User
   apartment?: Apartment
+  cleaner?: User | null
+}
+
+export interface CleaningTask {
+  id: string
+  apartmentId: string
+  apartment?: Apartment
+  title: string
+  description: string | null
+  order: number
+  createdAt: Date
+}
+
+export interface TaskCompletion {
+  id: string
+  taskId: string
+  visitId: string
+  completedAt: Date
+  mediaUrls: string[] // parsed from JSON
+}
+
+export interface IncidentReport {
+  id: string
+  visitId: string
+  type: 'broken' | 'stolen' | 'other'
+  description: string
+  mediaUrls: string[] // parsed from JSON
+  createdAt: Date
 }
 
 export interface KeyCode {

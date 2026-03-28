@@ -23,11 +23,13 @@ type VisitWithRelations = Visit & {
   user: Pick<User, 'id' | 'name' | 'email'>
   apartment: Apartment
   lineItems?: LineItem[]
+  cleaner?: Pick<User, 'id' | 'name' | 'email'> | null
 }
 
 export default function VisitsPage() {
   const [visits, setVisits] = useState<VisitWithRelations[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [cleaners, setCleaners] = useState<User[]>([])
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,6 +38,7 @@ export default function VisitsPage() {
   const [formData, setFormData] = useState({
     userId: '',
     apartmentId: '',
+    cleanerId: '',
     checkIn: '',
     checkOut: '',
     notes: '',
@@ -60,6 +63,7 @@ export default function VisitsPage() {
       if (usersRes.ok) {
         const data = await usersRes.json()
         setUsers(data.users.filter((u: User) => u.role === 'CLIENT'))
+        setCleaners(data.users.filter((u: User) => u.role === 'CLEANER'))
       }
       if (apartmentsRes.ok) {
         const data = await apartmentsRes.json()
@@ -81,6 +85,7 @@ export default function VisitsPage() {
     setFormData({
       userId: users[0]?.id || '',
       apartmentId: apartments[0]?.id || '',
+      cleanerId: '',
       checkIn: new Date().toISOString().split('T')[0],
       checkOut: '',
       notes: '',
@@ -96,6 +101,7 @@ export default function VisitsPage() {
     setFormData({
       userId: item.userId,
       apartmentId: item.apartmentId,
+      cleanerId: item.cleanerId || '',
       checkIn: new Date(item.checkIn).toISOString().split('T')[0],
       checkOut: item.checkOut ? new Date(item.checkOut).toISOString().split('T')[0] : '',
       notes: item.notes || '',
@@ -163,6 +169,7 @@ export default function VisitsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          cleanerId: formData.cleanerId || null,
           checkOut: formData.checkOut || null,
           revenue: totalRevenue,
           costs: totalCosts,
@@ -250,6 +257,7 @@ export default function VisitsPage() {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Guest</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Apartment</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Cleaner</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Check In</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Check Out</th>
                     <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Revenue</th>
@@ -268,6 +276,9 @@ export default function VisitsPage() {
                           <p className="text-xs text-gray-500">{visit.user.email}</p>
                         </td>
                         <td className="py-3 px-4">{visit.apartment.name}</td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {visit.cleaner ? visit.cleaner.name : <span className="text-gray-400">—</span>}
+                        </td>
                         <td className="py-3 px-4">{formatDate(visit.checkIn)}</td>
                         <td className="py-3 px-4">
                           {visit.checkOut ? formatDate(visit.checkOut) : '-'}
@@ -339,6 +350,20 @@ export default function VisitsPage() {
             >
               {apartments.map((apt) => (
                 <option key={apt.id} value={apt.id}>{apt.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assign Cleaner (Optional)</label>
+            <select
+              value={formData.cleanerId}
+              onChange={(e) => setFormData({ ...formData, cleanerId: e.target.value })}
+              className="w-full h-10 rounded-md border border-gray-300 px-3"
+            >
+              <option value="">No cleaner assigned</option>
+              {cleaners.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
               ))}
             </select>
           </div>

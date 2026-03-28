@@ -11,7 +11,7 @@ export async function PUT(
     const { id } = await params
 
     const body = await request.json()
-    const { checkIn, checkOut, revenue, costs, notes, apartmentId, userId, lineItems } = body
+    const { checkIn, checkOut, revenue, costs, notes, apartmentId, userId, cleanerId, lineItems } = body
 
     // First update the visit
     const visit = await prisma.visit.update({
@@ -24,6 +24,7 @@ export async function PUT(
         ...(notes !== undefined && { notes }),
         ...(apartmentId !== undefined && { apartmentId }),
         ...(userId !== undefined && { userId }),
+        ...('cleanerId' in body && { cleanerId: cleanerId || null }),
       },
     })
 
@@ -56,6 +57,9 @@ export async function PUT(
         },
         apartment: true,
         lineItems: true,
+        cleaner: {
+          select: { id: true, name: true, email: true },
+        },
       },
     })
 

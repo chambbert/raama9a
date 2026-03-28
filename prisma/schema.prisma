@@ -17,8 +17,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  visits    Visit[]
-  reviews   Review[]
+  visits        Visit[]
+  cleanerVisits Visit[] @relation("CleanerVisits")
+  reviews       Review[]
 }
 
 model Apartment {
@@ -31,14 +32,16 @@ model Apartment {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  visits      Visit[]
-  keyCodes    KeyCode[]
+  visits         Visit[]
+  keyCodes       KeyCode[]
+  cleaningTasks  CleaningTask[]
 }
 
 model Visit {
   id          String    @id @default(cuid())
   userId      String
   apartmentId String
+  cleanerId   String?
   checkIn     DateTime
   checkOut    DateTime?
   revenue     Float     @default(0)
@@ -49,7 +52,10 @@ model Visit {
 
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
-  lineItems   VisitLineItem[]
+  cleaner     User?     @relation("CleanerVisits", fields: [cleanerId], references: [id], onDelete: SetNull)
+  lineItems       VisitLineItem[]
+  taskCompletions TaskCompletion[]
+  incidentReports IncidentReport[]
 }
 
 model VisitLineItem {
@@ -141,4 +147,39 @@ model SiteSettings {
   contactPhone String?
   address      String?
   mapUrl       String?
+}
+
+model CleaningTask {
+  id          String        @id @default(cuid())
+  apartmentId String
+  apartment   Apartment     @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  completions TaskCompletion[]
+}
+
+model TaskCompletion {
+  id          String       @id @default(cuid())
+  taskId      String
+  task        CleaningTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  visitId     String
+  visit       Visit        @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  completedAt DateTime     @default(now())
+  mediaUrls   String?      // JSON array of file URL strings
+
+  @@unique([taskId, visitId])
+}
+
+model IncidentReport {
+  id          String   @id @default(cuid())
+  visitId     String
+  visit       Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  type        String   // 'broken' | 'stolen' | 'other'
+  description String
+  mediaUrls   String?  // JSON array of file URL strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

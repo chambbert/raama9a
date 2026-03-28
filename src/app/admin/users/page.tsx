@@ -23,7 +23,7 @@ export default function UsersPage() {
     email: '',
     phone: '',
     password: '',
-    role: 'CLIENT' as 'ADMIN' | 'CLIENT',
+    role: 'CLIENT' as 'ADMIN' | 'CLIENT' | 'CLEANER',
   })
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -50,7 +50,7 @@ export default function UsersPage() {
 
   const openCreateModal = () => {
     setEditingUser(null)
-    setFormData({ name: '', email: '', phone: '', password: '', role: 'CLIENT' })
+    setFormData({ name: '', email: '', phone: '', password: '', role: 'CLIENT' as 'ADMIN' | 'CLIENT' | 'CLEANER' })
     setFormError('')
     setIsModalOpen(true)
   }
@@ -161,7 +161,7 @@ export default function UsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {users.map((user) => (
             <Card key={user.id} className="overflow-hidden">
-              <div className={`h-2 ${user.role === 'ADMIN' ? 'bg-purple-500' : 'bg-blue-500'}`} />
+              <div className={`h-2 ${user.role === 'ADMIN' ? 'bg-purple-500' : user.role === 'CLEANER' ? 'bg-green-500' : 'bg-blue-500'}`} />
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -175,6 +175,8 @@ export default function UsersPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         user.role === 'ADMIN'
                           ? 'bg-purple-100 text-purple-700'
+                          : user.role === 'CLEANER'
+                          ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'
                       }`}>
                         {user.role}
@@ -284,10 +286,11 @@ export default function UsersPage() {
             id="role"
             label="Role"
             value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'CLIENT' })}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'CLIENT' | 'CLEANER' })}
             options={[
               { value: 'CLIENT', label: 'Client' },
               { value: 'ADMIN', label: 'Admin' },
+              { value: 'CLEANER', label: 'Cleaner' },
             ]}
           />
 

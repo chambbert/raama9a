@@ -19,7 +19,7 @@ export const createUserSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().optional().nullable(),
-  role: z.enum(['ADMIN', 'CLIENT']).default('CLIENT'),
+  role: z.enum(['ADMIN', 'CLIENT', 'CLEANER']).default('CLIENT'),
 })
 
 export const updateUserSchema = z.object({
@@ -27,7 +27,7 @@ export const updateUserSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters').optional(),
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
   phone: z.string().optional().nullable(),
-  role: z.enum(['ADMIN', 'CLIENT']).optional(),
+  role: z.enum(['ADMIN', 'CLIENT', 'CLEANER']).optional(),
 })
 
 // Apartment schemas
@@ -43,11 +43,20 @@ export const apartmentSchema = z.object({
 export const visitSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   apartmentId: z.string().min(1, 'Apartment ID is required'),
+  cleanerId: z.string().nullable().optional(),
   checkIn: z.string().transform((str) => new Date(str)),
   checkOut: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
   revenue: z.number().default(0),
   costs: z.number().default(0),
   notes: z.string().nullable().optional(),
+})
+
+// Cleaning task schemas
+export const cleaningTaskSchema = z.object({
+  apartmentId: z.string().min(1, 'Apartment ID is required'),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional().nullable(),
+  order: z.number().default(0),
 })
 
 // KeyCode schemas

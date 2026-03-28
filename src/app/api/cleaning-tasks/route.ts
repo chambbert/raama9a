@@ -1,27 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
-import { visitSchema } from '@/lib/validation'
+import { cleaningTaskSchema } from '@/lib/validation'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await requireAdmin()
 
-    const visits = await prisma.visit.findMany({
+    const { searchParams } = new URL(request.url)
+    const apartmentId = searchParams.get('apartmentId')
+
+    const tasks = await prisma.cleaningTask.findMany({
+      where: apartmentId ? { apartmentId } : undefined,
       include: {
-        user: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
-        apartment: true,
-        lineItems: true,
-        cleaner: {
-          select: { id: true, name: true, email: true },
-        },
+        apartment: { select: { id: true, name: true } },
       },
-      orderBy: { checkIn: 'desc' },
+      orderBy: [{ apartmentId: 'asc' }, { order: 'asc' }],
     })
 
-    return NextResponse.json({ visits })
+    return NextResponse.json({ tasks })
   } catch (error) {
     if (error instanceof Error && error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -29,7 +26,7 @@ export async function GET() {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Get visits error:', error)
+    console.error('Get cleaning tasks error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }
@@ -39,9 +36,7 @@ export async function POST(request: NextRequest) {
     await requireAdmin()
 
     const body = await request.json()
-    const { lineItems, ...visitData } = body
-
-    const validationResult = visitSchema.safeParse(visitData)
+    const validationResult = cleaningTaskSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -50,30 +45,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const visit = await prisma.visit.create({
-      data: {
-        ...validationResult.data,
-        lineItems: lineItems && lineItems.length > 0 ? {
-          create: lineItems.map((item: { type: string; description: string; amount: number }) => ({
-            type: item.type,
-            description: item.description,
-            amount: item.amount,
-          })),
-        } : undefined,
-      },
+    const task = await prisma.cleaningTask.create({
+      data: validationResult.data,
       include: {
-        user: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
-        apartment: true,
-        lineItems: true,
-        cleaner: {
-          select: { id: true, name: true, email: true },
-        },
+        apartment: { select: { id: true, name: true } },
       },
     })
 
-    return NextResponse.json({ visit }, { status: 201 })
+    return NextResponse.json({ task }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -81,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Create visit error:', error)
+    console.error('Create cleaning task error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }

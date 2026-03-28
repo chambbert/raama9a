@@ -30,7 +30,13 @@ export default function LoginPage() {
       const result = await login(email, password)
 
       if (result.success) {
-        window.location.href = callbackUrl
+        if (result.role === 'ADMIN') {
+          window.location.href = '/admin'
+        } else if (result.role === 'CLEANER') {
+          window.location.href = '/cleaner'
+        } else {
+          window.location.href = callbackUrl
+        }
       } else {
         setError(result.error || 'Login failed')
       }
