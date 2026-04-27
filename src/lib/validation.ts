@@ -118,6 +118,35 @@ export const sectionSchema = z.object({
   active: z.boolean().default(true),
 })
 
+// Booking schemas
+export const bookingSchema = z.object({
+  apartmentId: z.string().min(1, 'Apartment is required'),
+  guestName: z.string().min(2, 'Name must be at least 2 characters'),
+  guestEmail: z.string().email('Invalid email address'),
+  guestPhone: z.string().optional().nullable(),
+  checkIn: z.string().min(1, 'Check-in date is required'),
+  checkOut: z.string().min(1, 'Check-out date is required'),
+  adults: z.number().min(1).max(4).default(1),
+  notes: z.string().optional().nullable(),
+  visitors: z.array(z.object({
+    name: z.string().min(2, 'Each visitor name must be at least 2 characters'),
+    birthdate: z.string().min(1, 'Each visitor birthdate is required'),
+  })).min(1, 'At least one visitor is required'),
+})
+
+// Apartment pricing schema
+export const apartmentPricingSchema = z.object({
+  cleanerFee: z.number().min(0),
+  pricing: z.array(z.object({
+    dayOfWeek: z.number().min(0).max(6),
+    pricePerNight: z.number().min(0),
+  })).length(7),
+  datePrices: z.array(z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+    price: z.number().min(0),
+  })).optional().default([]),
+})
+
 // Site Settings schemas
 export const siteSettingsSchema = z.object({
   siteName: z.string().min(1, 'Site name is required'),

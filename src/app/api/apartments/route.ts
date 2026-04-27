@@ -7,6 +7,7 @@ export async function GET() {
   try {
     const apartments = await prisma.apartment.findMany({
       orderBy: { name: 'asc' },
+      include: { pricing: { orderBy: { dayOfWeek: 'asc' } }, datePrices: true },
     })
 
     return NextResponse.json({ apartments })

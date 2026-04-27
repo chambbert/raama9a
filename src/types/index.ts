@@ -6,7 +6,22 @@ export interface User {
   name: string
   phone: string | null
   role: Role
+  generatedPassword?: string | null
   createdAt: Date
+}
+
+export interface ApartmentPricing {
+  id: string
+  apartmentId: string
+  dayOfWeek: number
+  pricePerNight: number
+}
+
+export interface ApartmentDatePrice {
+  id: string
+  apartmentId: string
+  date: string // YYYY-MM-DD
+  price: number
 }
 
 export interface Apartment {
@@ -16,7 +31,44 @@ export interface Apartment {
   description: string | null
   latitude: number | null
   longitude: number | null
+  cleanerFee: number
+  pricing: ApartmentPricing[]
+  datePrices: ApartmentDatePrice[]
   createdAt: Date
+}
+
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED'
+
+export interface PriceBreakdownItem {
+  date: string
+  dayOfWeek: number
+  price: number
+}
+
+export interface Visitor {
+  name: string
+  birthdate: string // YYYY-MM-DD
+}
+
+export interface Booking {
+  id: string
+  apartmentId: string
+  guestName: string
+  guestEmail: string
+  guestPhone: string | null
+  checkIn: string
+  checkOut: string
+  adults: number
+  notes: string | null
+  status: BookingStatus
+  adminNotes: string | null
+  totalPrice: number
+  cleanerFee: number
+  priceBreakdown: PriceBreakdownItem[] | null
+  visitors: Visitor[] | null
+  createdAt: string
+  updatedAt: string
+  apartment?: Apartment
 }
 
 export interface Visit {

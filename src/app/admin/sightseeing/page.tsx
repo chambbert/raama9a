@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Edit, Trash2, MapPin, X, ImageIcon } from 'lucide-react'
+import { Plus, Edit, Trash2, MapPin, X, ImageIcon, ChevronUp, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import type { Sightseeing } from '@/types'
 
@@ -62,6 +62,38 @@ export default function SightseeingPage() {
   useEffect(() => {
     fetchItems()
   }, [])
+
+  const moveItem = async (categoryItems: Sightseeing[], index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= categoryItems.length) return
+
+    const a = categoryItems[index]
+    const b = categoryItems[targetIndex]
+
+    const toFormData = (item: Sightseeing, newOrder: number) => {
+      const fd = new FormData()
+      fd.append('name', item.name)
+      fd.append('description', item.description)
+      fd.append('address', item.address || '')
+      fd.append('category', item.category)
+      fd.append('order', newOrder.toString())
+      return fd
+    }
+
+    await Promise.all([
+      fetch(`/api/sightseeing/${a.id}`, {
+        method: 'PUT',
+        body: toFormData(a, b.order),
+        credentials: 'include',
+      }),
+      fetch(`/api/sightseeing/${b.id}`, {
+        method: 'PUT',
+        body: toFormData(b, a.order),
+        credentials: 'include',
+      }),
+    ])
+    fetchItems()
+  }
 
   const openCreateModal = () => {
     setEditingItem(null)
@@ -233,7 +265,7 @@ export default function SightseeingPage() {
             <div key={category}>
               <h2 className="text-lg font-semibold mb-3 capitalize">{category}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categoryItems.map((item) => (
+                {categoryItems.map((item, index) => (
                   <Card key={item.id} className="overflow-hidden">
                     {item.imageUrl && (
                       <div className="relative h-32">
@@ -248,7 +280,23 @@ export default function SightseeingPage() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg">{item.name}</CardTitle>
-                        <div className="flex gap-1">
+                        <div className="flex items-center gap-1">
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              onClick={() => moveItem(categoryItems, index, 'up')}
+                              disabled={index === 0}
+                              className="h-6 w-6 flex items-center justify-center hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronUp className="h-4 w-4 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={() => moveItem(categoryItems, index, 'down')}
+                              disabled={index === categoryItems.length - 1}
+                              className="h-6 w-6 flex items-center justify-center hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            </button>
+                          </div>
                           <button
                             onClick={() => openEditModal(item)}
                             className="p-2 hover:bg-gray-100 rounded-lg"
@@ -303,16 +351,20 @@ export default function SightseeingPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
-            <select
+            <input
+              type="text"
+              list="sightseeing-categories"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full h-10 rounded-md border border-gray-300 px-3"
+              placeholder="Select or type a category"
               required
-            >
+            />
+            <datalist id="sightseeing-categories">
               {defaultCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <Textarea

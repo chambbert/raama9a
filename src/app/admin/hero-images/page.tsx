@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Trash2, Upload, Image as ImageIcon, GripVertical } from 'lucide-react'
+import { Plus, Trash2, Upload, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react'
 import type { HeroImage } from '@/types'
 
 export default function HeroImagesPage() {
@@ -41,6 +41,30 @@ export default function HeroImagesPage() {
     fetchImages()
   }, [])
 
+  const moveItem = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= images.length) return
+
+    const a = images[index]
+    const b = images[targetIndex]
+
+    await Promise.all([
+      fetch(`/api/hero-images/${a.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: b.order }),
+        credentials: 'include',
+      }),
+      fetch(`/api/hero-images/${b.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: a.order }),
+        credentials: 'include',
+      }),
+    ])
+    fetchImages()
+  }
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault()
     const file = fileInputRef.current?.files?.[0]
@@ -59,7 +83,8 @@ export default function HeroImagesPage() {
       formData.append('title', title)
       formData.append('order', images.length.toString())
 
-      const res = await fetch('/api/hero-images', { credentials: 'include',
+      const res = await fetch('/api/hero-images', {
+        credentials: 'include',
         method: 'POST',
         body: formData,
       })
@@ -99,7 +124,8 @@ export default function HeroImagesPage() {
 
   const toggleActive = async (image: HeroImage) => {
     try {
-      await fetch(`/api/hero-images/${image.id}`, { credentials: 'include',
+      await fetch(`/api/hero-images/${image.id}`, {
+        credentials: 'include',
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !image.active }),
@@ -156,10 +182,26 @@ export default function HeroImagesPage() {
                   #{index + 1}
                 </div>
                 {!image.active && (
-                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute top-2 right-14 bg-red-500 text-white text-xs px-2 py-1 rounded">
                     Hidden
                   </div>
                 )}
+                <div className="absolute top-2 right-2 flex flex-col gap-1">
+                  <button
+                    onClick={() => moveItem(index, 'up')}
+                    disabled={index === 0}
+                    className="h-6 w-6 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => moveItem(index, 'down')}
+                    disabled={index === images.length - 1}
+                    className="h-6 w-6 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">

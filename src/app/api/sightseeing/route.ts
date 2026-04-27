@@ -68,7 +68,13 @@ export async function POST(request: NextRequest) {
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
         await mkdir(uploadsDir, { recursive: true })
 
-        const ext = path.extname(file.name)
+        const mimeToExt: Record<string, string> = {
+          'image/jpeg': '.jpg',
+          'image/png': '.png',
+          'image/webp': '.webp',
+          'image/gif': '.gif',
+        }
+        const ext = mimeToExt[file.type] ?? '.jpg'
         const filename = `sightseeing-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
         const filepath = path.join(uploadsDir, filename)
 

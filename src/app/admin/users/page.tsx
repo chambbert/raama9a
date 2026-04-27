@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
 import { formatCurrency, formatDate, getInitials } from '@/lib/utils'
-import { Plus, Edit, Trash2, User, Mail, Phone, DollarSign, Calendar } from 'lucide-react'
+import { Plus, Edit, Trash2, User, Mail, Phone, DollarSign, Calendar, Eye, EyeOff, Copy, Check as CheckIcon } from 'lucide-react'
 import type { ClientCard } from '@/types'
 
 export default function UsersPage() {
@@ -27,6 +27,9 @@ export default function UsersPage() {
   })
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showGenPassword, setShowGenPassword] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [roleFilter, setRoleFilter] = useState<string>('all')
 
   const fetchUsers = async () => {
     try {
@@ -52,6 +55,8 @@ export default function UsersPage() {
     setEditingUser(null)
     setFormData({ name: '', email: '', phone: '', password: '', role: 'CLIENT' as 'ADMIN' | 'CLIENT' | 'CLEANER' })
     setFormError('')
+    setShowGenPassword(false)
+    setCopied(false)
     setIsModalOpen(true)
   }
 
@@ -65,7 +70,16 @@ export default function UsersPage() {
       role: user.role,
     })
     setFormError('')
+    setShowGenPassword(false)
+    setCopied(false)
     setIsModalOpen(true)
+  }
+
+  const copyPassword = (pwd: string) => {
+    navigator.clipboard.writeText(pwd).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,6 +140,15 @@ export default function UsersPage() {
     }
   }
 
+  const roleTabs = [
+    { key: 'all', label: 'All' },
+    { key: 'CLIENT', label: 'Client' },
+    { key: 'ADMIN', label: 'Admin' },
+    { key: 'CLEANER', label: 'Cleaner' },
+  ]
+
+  const filteredUsers = roleFilter === 'all' ? users : users.filter((u) => u.role === roleFilter)
+
   if (loading) return <LoadingScreen />
 
   return (
@@ -141,9 +164,29 @@ export default function UsersPage() {
         </Button>
       </div>
 
+      {/* Role Filter Tabs */}
+      <div className="flex gap-2">
+        {roleTabs.map((tab) => {
+          const count = tab.key === 'all' ? users.length : users.filter((u) => u.role === tab.key).length
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setRoleFilter(tab.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                roleFilter === tab.key
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {tab.label} ({count})
+            </button>
+          )
+        })}
+      </div>
+
       {error && <Alert variant="error">{error}</Alert>}
 
-      {users.length === 0 ? (
+      {filteredUsers.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -159,7 +202,7 @@ export default function UsersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <Card key={user.id} className="overflow-hidden">
               <div className={`h-2 ${user.role === 'ADMIN' ? 'bg-purple-500' : user.role === 'CLEANER' ? 'bg-green-500' : 'bg-blue-500'}`} />
               <CardHeader>
@@ -172,15 +215,22 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <CardTitle className="text-lg">{user.name}</CardTitle>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        user.role === 'ADMIN'
-                          ? 'bg-purple-100 text-purple-700'
-                          : user.role === 'CLEANER'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {user.role}
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          user.role === 'ADMIN'
+                            ? 'bg-purple-100 text-purple-700'
+                            : user.role === 'CLEANER'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {user.role}
+                        </span>
+                        {user.generatedPassword && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            From booking
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -272,10 +322,45 @@ export default function UsersPage() {
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           />
 
+          {/* System-generated password (read-only reveal) */}
+          {editingUser?.generatedPassword && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Current password
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showGenPassword ? 'text' : 'password'}
+                    readOnly
+                    value={editingUser.generatedPassword}
+                    className="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 pr-10 text-sm font-mono text-gray-800 select-all focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGenPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    title={showGenPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showGenPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyPassword(editingUser.generatedPassword!)}
+                  className="flex-shrink-0 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+                  title="Copy password"
+                >
+                  {copied ? <CheckIcon className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          )}
+
           <Input
             id="password"
             type="password"
-            label={editingUser ? 'New Password (leave blank to keep current)' : 'Password (min 8 characters)'}
+            label={editingUser ? 'Set new password (leave blank to keep current)' : 'Password (min 8 characters)'}
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required={!editingUser}

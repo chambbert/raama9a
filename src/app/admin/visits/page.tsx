@@ -209,6 +209,25 @@ export default function VisitsPage() {
 
   if (loading) return <LoadingScreen />
 
+  const today = new Date().toISOString().split('T')[0]
+
+  const getVisitStatus = (visit: VisitWithRelations) => {
+    const checkIn = new Date(visit.checkIn).toISOString().split('T')[0]
+    const checkOut = visit.checkOut ? new Date(visit.checkOut).toISOString().split('T')[0] : null
+
+    if (checkIn > today) {
+      return { label: 'Upcoming', className: 'bg-blue-100 text-blue-700' }
+    }
+    if (checkIn <= today && (!checkOut || checkOut > today)) {
+      return { label: 'Active', className: 'bg-emerald-100 text-emerald-700' }
+    }
+    return { label: 'Past', className: 'bg-gray-100 text-gray-500' }
+  }
+
+  const totalVisitsRevenue = visits.reduce((sum, v) => sum + v.revenue, 0)
+  const totalVisitsCosts = visits.reduce((sum, v) => sum + v.costs, 0)
+  const totalVisitsProfit = totalVisitsRevenue - totalVisitsCosts
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -260,6 +279,7 @@ export default function VisitsPage() {
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Cleaner</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Check In</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Check Out</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Status</th>
                     <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Revenue</th>
                     <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Costs</th>
                     <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Profit</th>
@@ -269,6 +289,7 @@ export default function VisitsPage() {
                 <tbody>
                   {visits.map((visit) => {
                     const profit = visit.revenue - visit.costs
+                    const status = getVisitStatus(visit)
                     return (
                       <tr key={visit.id} className="border-b last:border-0 hover:bg-gray-50">
                         <td className="py-3 px-4">
@@ -283,13 +304,18 @@ export default function VisitsPage() {
                         <td className="py-3 px-4">
                           {visit.checkOut ? formatDate(visit.checkOut) : '-'}
                         </td>
-                        <td className="py-3 px-4 text-right text-green-600">
+                        <td className="py-3 px-4">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-medium text-sm text-green-600">
                           {formatCurrency(visit.revenue)}
                         </td>
-                        <td className="py-3 px-4 text-right text-red-600">
+                        <td className="py-3 px-4 text-right font-medium text-sm text-red-600">
                           {formatCurrency(visit.costs)}
                         </td>
-                        <td className={`py-3 px-4 text-right font-medium ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <td className={`py-3 px-4 text-right font-medium text-sm ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {formatCurrency(profit)}
                         </td>
                         <td className="py-3 px-4">
@@ -311,6 +337,24 @@ export default function VisitsPage() {
                       </tr>
                     )
                   })}
+                  <tr className="border-t-2 border-gray-200">
+                    <td className="py-3 px-4 font-bold">Totals</td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4 text-right font-medium text-sm text-green-600">
+                      {formatCurrency(totalVisitsRevenue)}
+                    </td>
+                    <td className="py-3 px-4 text-right font-medium text-sm text-red-600">
+                      {formatCurrency(totalVisitsCosts)}
+                    </td>
+                    <td className={`py-3 px-4 text-right font-medium text-sm ${totalVisitsProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {formatCurrency(totalVisitsProfit)}
+                    </td>
+                    <td className="py-3 px-4"></td>
+                  </tr>
                 </tbody>
               </table>
             </div>

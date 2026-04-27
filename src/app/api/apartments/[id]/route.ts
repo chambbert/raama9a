@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
+import { apartmentSchema } from '@/lib/validation'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAdmin()
     const { id } = await params
 
     const apartment = await prisma.apartment.findUnique({
@@ -30,6 +32,12 @@ export async function GET(
 
     return NextResponse.json({ apartment })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     console.error('Get apartment error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
@@ -44,17 +52,17 @@ export async function PUT(
     const { id } = await params
 
     const body = await request.json()
-    const { name, address, description, latitude, longitude } = body
+    const validationResult = apartmentSchema.partial().safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: validationResult.error.errors[0].message },
+        { status: 400 }
+      )
+    }
 
     const apartment = await prisma.apartment.update({
       where: { id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(address !== undefined && { address }),
-        ...(description !== undefined && { description }),
-        ...(latitude !== undefined && { latitude }),
-        ...(longitude !== undefined && { longitude }),
-      },
+      data: validationResult.data,
     })
 
     return NextResponse.json({ apartment })

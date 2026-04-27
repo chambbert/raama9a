@@ -14,6 +14,7 @@ export async function GET() {
         name: true,
         phone: true,
         role: true,
+        generatedPassword: true,
         createdAt: true,
         visits: {
           include: {
@@ -55,8 +56,6 @@ export async function POST(request: NextRequest) {
     const validationResult = createUserSchema.safeParse(body)
 
     if (!validationResult.success) {
-      console.log('User validation error:', validationResult.error.errors)
-      console.log('Request body:', body)
       return NextResponse.json(
         { error: validationResult.error.errors[0].message },
         { status: 400 }

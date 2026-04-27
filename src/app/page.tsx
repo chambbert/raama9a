@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Navbar } from '@/components/landing/navbar'
 import { HeroCarousel } from '@/components/landing/hero-carousel'
 import { AmenitiesSection } from '@/components/landing/amenities-section'
+import { BookingSection } from '@/components/landing/booking-section'
 import { LocationSection } from '@/components/landing/location-section'
 import { ContactSection } from '@/components/landing/contact-section'
 import { ReviewsSection } from '@/components/landing/reviews-section'
@@ -11,9 +12,9 @@ import { Footer } from '@/components/landing/footer'
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://raama9a.ee'
 
 export const metadata: Metadata = {
-  title: 'Raama 9a – Riverside Apartment in Pärnu | River View Accommodation',
+  title: 'Rääma 9a – Riverside Apartment in Pärnu | River View Accommodation',
   description:
-    'Raama 9a is a cozy riverside apartment in Pärnu, Estonia. ' +
+    'Rääma 9a is a cozy riverside apartment in Pärnu, Estonia. ' +
     'Enjoy stunning river views, modern amenities and a peaceful location. ' +
     'The perfect Pärnu apartment for holidays, short stays and weekend getaways.',
   alternates: {
@@ -25,15 +26,15 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'LodgingBusiness',
   '@id': siteUrl,
-  name: 'Raama 9a – Riverside Apartment Pärnu',
-  alternateName: ['raama9a', 'Raama 9a Pärnu', 'Riverside Apartment Pärnu'],
+  name: 'Rääma 9a – Riverside Apartment Pärnu',
+  alternateName: ['raama9a', 'Rääma 9a Pärnu', 'Riverside Apartment Pärnu'],
   description:
     'Cozy riverside apartment in Pärnu, Estonia with beautiful river views. ' +
-    'Modern accommodation at Raama 9a offering a relaxing stay by the river.',
+    'Modern accommodation at Rääma 9a offering a relaxing stay by the river.',
   url: siteUrl,
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Raama 9a',
+    streetAddress: 'Rääma 9a',
     addressLocality: 'Pärnu',
     addressCountry: 'EE',
   },
@@ -59,7 +60,7 @@ const jsonLd = {
 }
 
 async function getPageData() {
-  const [heroImages, reviews, settings, sections] = await Promise.all([
+  const [heroImages, reviews, settings, sections, apartments] = await Promise.all([
     prisma.heroImage.findMany({
       where: { active: true },
       orderBy: { order: 'asc' },
@@ -74,13 +75,17 @@ async function getPageData() {
       where: { active: true },
       orderBy: { order: 'asc' },
     }),
+    prisma.apartment.findMany({
+      orderBy: { name: 'asc' },
+      include: { pricing: { orderBy: { dayOfWeek: 'asc' } }, datePrices: true },
+    }),
   ])
 
-  return { heroImages, reviews, settings, sections }
+  return { heroImages, reviews, settings, sections, apartments }
 }
 
 export default async function HomePage() {
-  const { heroImages, reviews, settings, sections } = await getPageData()
+  const { heroImages, reviews, settings, sections, apartments } = await getPageData()
 
   return (
     <main className="min-h-screen">
@@ -93,8 +98,12 @@ export default async function HomePage() {
 
       <HeroCarousel
         images={heroImages}
-        siteName={settings?.siteName || 'Raama 9a – Riverside Apartment Pärnu'}
+        siteName={settings?.siteName || 'Rääma 9a – Riverside Apartment Pärnu'}
       />
+
+      <div id="booking">
+        <BookingSection apartments={apartments} />
+      </div>
 
       <div id="amenities">
         <AmenitiesSection />
@@ -102,7 +111,7 @@ export default async function HomePage() {
 
       <div id="location">
         <LocationSection
-          address={settings?.address || 'Raama 9a, Pärnu, Estonia'}
+          address={settings?.address || 'Rääma 9a, Pärnu, Estonia'}
           mapUrl={settings?.mapUrl}
         />
       </div>

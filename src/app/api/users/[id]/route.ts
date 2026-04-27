@@ -19,6 +19,7 @@ export async function GET(
         name: true,
         phone: true,
         role: true,
+        generatedPassword: true,
         createdAt: true,
         visits: {
           include: {
@@ -78,6 +79,7 @@ export async function PUT(
     const updateData: Record<string, unknown> = { ...otherData }
     if (password) {
       updateData.password = await hashPassword(password)
+      updateData.generatedPassword = password
     }
 
     const user = await prisma.user.update({
@@ -89,6 +91,7 @@ export async function PUT(
         name: true,
         phone: true,
         role: true,
+        generatedPassword: true,
         createdAt: true,
       },
     })

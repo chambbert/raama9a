@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Edit, Trash2, ClipboardList, GripVertical } from 'lucide-react'
+import { Plus, Edit, Trash2, ClipboardList, ChevronUp, ChevronDown } from 'lucide-react'
 import type { Apartment, CleaningTask } from '@/types'
 
 type CleaningTaskWithApartment = CleaningTask & {
@@ -70,6 +70,30 @@ export default function CleaningTasksPage() {
       fetchTasks(selectedApartmentId)
     }
   }, [selectedApartmentId])
+
+  const moveItem = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= tasks.length) return
+
+    const a = tasks[index]
+    const b = tasks[targetIndex]
+
+    await Promise.all([
+      fetch(`/api/cleaning-tasks/${a.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: a.title, description: a.description || null, order: b.order }),
+        credentials: 'include',
+      }),
+      fetch(`/api/cleaning-tasks/${b.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: b.title, description: b.description || null, order: a.order }),
+        credentials: 'include',
+      }),
+    ])
+    fetchTasks(selectedApartmentId)
+  }
 
   const openCreateModal = () => {
     setEditingTask(null)
@@ -193,12 +217,27 @@ export default function CleaningTasksPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {tasks.map((task) => (
+                  {tasks.map((task, index) => (
                     <div
                       key={task.id}
                       className="flex items-center gap-3 p-3 border rounded-lg bg-gray-50 hover:bg-gray-100"
                     >
-                      <GripVertical className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => moveItem(index, 'up')}
+                          disabled={index === 0}
+                          className="h-6 w-6 flex items-center justify-center hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={() => moveItem(index, 'down')}
+                          disabled={index === tasks.length - 1}
+                          className="h-6 w-6 flex items-center justify-center hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        </button>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900">{task.title}</p>
                         {task.description && (
@@ -253,15 +292,6 @@ export default function CleaningTasksPage() {
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
-          />
-
-          <Input
-            id="order"
-            type="number"
-            label="Order"
-            value={formData.order}
-            onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-            min={0}
           />
 
           <div className="flex gap-3 pt-4">

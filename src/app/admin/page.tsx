@@ -1,186 +1,426 @@
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Building, Calendar, DollarSign, Star, Image } from 'lucide-react'
+import { BookingCalendarWidget } from '@/components/admin/booking-calendar'
+import { PendingBookingsWidget } from '@/components/admin/pending-bookings-widget'
 import { formatCurrency } from '@/lib/utils'
+import { Clock, CalendarCheck, Home, TrendingUp, Star } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function AdminDashboardPage() {
-  // Auth is handled by layout
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const in7Days = new Date(today)
+  in7Days.setDate(in7Days.getDate() + 7)
+
+  const in14Days = new Date(today)
+  in14Days.setDate(in14Days.getDate() + 14)
+
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
 
   const [
-    usersCount,
-    apartmentsCount,
-    visitsCount,
+    pendingCount,
     pendingReviewsCount,
-    heroImagesCount,
-    revenueData,
+    upcomingBookingCount,
+    upcomingVisitCount,
+    currentBookings,
+    currentVisits,
+    upcomingArrivalBookings,
+    upcomingArrivalVisits,
+    thisMonthRevenue,
+    lastMonthRevenue,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: 'CLIENT' } }),
-    prisma.apartment.count(),
-    prisma.visit.count(),
+    prisma.booking.count({ where: { status: 'PENDING' } }),
     prisma.review.count({ where: { approved: false } }),
-    prisma.heroImage.count({ where: { active: true } }),
+    // Confirmed bookings checking in within 7 days
+    prisma.booking.count({
+      where: { status: 'CONFIRMED', checkIn: { gte: today, lt: in7Days } },
+    }),
+    // Visits checking in within 7 days
+    prisma.visit.count({
+      where: { checkIn: { gte: today, lt: in7Days } },
+    }),
+    // Currently occupied — confirmed bookings
+    prisma.booking.findMany({
+      where: { status: 'CONFIRMED', checkIn: { lte: today }, checkOut: { gt: today } },
+      select: { guestName: true, apartment: { select: { name: true } } },
+    }),
+    // Currently occupied — visits (checkOut can be null = ongoing)
+    prisma.visit.findMany({
+      where: {
+        checkIn: { lte: today },
+        OR: [{ checkOut: null }, { checkOut: { gt: today } }],
+      },
+      select: {
+        user: { select: { name: true } },
+        apartment: { select: { name: true } },
+      },
+    }),
+    // Upcoming arrivals next 14 days — bookings
+    prisma.booking.findMany({
+      where: { status: 'CONFIRMED', checkIn: { gte: today, lt: in14Days } },
+      select: {
+        id: true,
+        guestName: true,
+        guestEmail: true,
+        guestPhone: true,
+        checkIn: true,
+        checkOut: true,
+        apartment: { select: { name: true } },
+      },
+      orderBy: { checkIn: 'asc' },
+    }),
+    // Upcoming arrivals next 14 days — visits
+    prisma.visit.findMany({
+      where: { checkIn: { gte: today, lt: in14Days } },
+      select: {
+        id: true,
+        checkIn: true,
+        checkOut: true,
+        user: { select: { name: true, email: true, phone: true } },
+        apartment: { select: { name: true } },
+      },
+      orderBy: { checkIn: 'asc' },
+    }),
+    // Revenue this month (from visits)
     prisma.visit.aggregate({
-      _sum: { revenue: true, costs: true },
+      where: { checkIn: { gte: monthStart, lt: monthEnd } },
+      _sum: { revenue: true },
+    }),
+    // Revenue last month
+    prisma.visit.aggregate({
+      where: { checkIn: { gte: lastMonthStart, lt: monthStart } },
+      _sum: { revenue: true },
     }),
   ])
 
-  const totalRevenue = revenueData._sum.revenue || 0
-  const totalCosts = revenueData._sum.costs || 0
-  const netProfit = totalRevenue - totalCosts
+  const upcomingCheckIns = upcomingBookingCount + upcomingVisitCount
+  const thisMonthRev = thisMonthRevenue._sum.revenue ?? 0
+  const lastMonthRev = lastMonthRevenue._sum.revenue ?? 0
+  const revDelta =
+    lastMonthRev > 0 ? ((thisMonthRev - lastMonthRev) / lastMonthRev) * 100 : null
 
-  // Get recent visits
-  const recentVisits = await prisma.visit.findMany({
-    take: 5,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: { select: { name: true, email: true } },
-      apartment: { select: { name: true } },
-    },
-  })
-
-  const stats = [
-    {
-      title: 'Total Clients',
-      value: usersCount,
-      icon: Users,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Apartments',
-      value: apartmentsCount,
-      icon: Building,
-      color: 'bg-purple-500',
-    },
-    {
-      title: 'Total Visits',
-      value: visitsCount,
-      icon: Calendar,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Pending Reviews',
-      value: pendingReviewsCount,
-      icon: Star,
-      color: 'bg-yellow-500',
-    },
-    {
-      title: 'Hero Images',
-      value: heroImagesCount,
-      icon: Image,
-      color: 'bg-pink-500',
-    },
-    {
-      title: 'Net Revenue',
-      value: formatCurrency(netProfit),
-      icon: DollarSign,
-      color: netProfit >= 0 ? 'bg-emerald-500' : 'bg-red-500',
-    },
+  // Currently occupied — who and where
+  const occupants = [
+    ...currentBookings.map((b) => ({ name: b.guestName, apartment: b.apartment.name })),
+    ...currentVisits.map((v) => ({ name: v.user.name, apartment: v.apartment.name })),
   ]
 
+  // Merge and sort upcoming arrivals
+  type Arrival = {
+    id: string
+    name: string
+    email: string | null
+    phone: string | null
+    apartment: string
+    checkIn: Date
+    checkOut: Date | null
+    source: 'booking' | 'visit'
+  }
+
+  const arrivals: Arrival[] = [
+    ...upcomingArrivalBookings.map((b) => ({
+      id: b.id,
+      name: b.guestName,
+      email: b.guestEmail,
+      phone: b.guestPhone,
+      apartment: b.apartment.name,
+      checkIn: b.checkIn,
+      checkOut: b.checkOut,
+      source: 'booking' as const,
+    })),
+    ...upcomingArrivalVisits.map((v) => ({
+      id: v.id,
+      name: v.user.name,
+      email: v.user.email,
+      phone: v.user.phone ?? null,
+      apartment: v.apartment.name,
+      checkIn: v.checkIn,
+      checkOut: v.checkOut,
+      source: 'visit' as const,
+    })),
+  ].sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime())
+
+  const todayStr = today.toDateString()
+  const tomorrowStr = tomorrow.toDateString()
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500">Overview of your property management</p>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-400">
+          {today.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.title}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+      {/* 4 stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Pending bookings */}
+        <Link href="/admin/bookings" className="block">
+          <Card
+            className={`h-full hover:shadow-md transition-shadow ${
+              pendingCount > 0 ? 'border-amber-300 bg-amber-50' : ''
+            }`}
+          >
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Pending
+                  </p>
+                  <p
+                    className={`text-3xl font-bold ${
+                      pendingCount > 0 ? 'text-amber-600' : 'text-gray-900'
+                    }`}
+                  >
+                    {pendingCount}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {pendingCount === 0
+                      ? 'all clear'
+                      : pendingCount === 1
+                      ? 'needs review'
+                      : 'need review'}
+                  </p>
+                </div>
+                <div
+                  className={`p-2.5 rounded-xl ${
+                    pendingCount > 0 ? 'bg-amber-100' : 'bg-gray-100'
+                  }`}
+                >
+                  <Clock
+                    className={`h-5 w-5 ${
+                      pendingCount > 0 ? 'text-amber-600' : 'text-gray-400'
+                    }`}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Check-ins next 7 days */}
+        <Card>
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Arriving soon
+                </p>
+                <p className="text-3xl font-bold text-gray-900">{upcomingCheckIns}</p>
+                <p className="text-xs text-gray-400 mt-1">next 7 days</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-blue-50">
+                <CalendarCheck className="h-5 w-5 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Currently occupied */}
+        <Card className={occupants.length > 0 ? 'border-emerald-200' : ''}>
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between">
+              <div className="min-w-0 mr-2">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Occupied now
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    occupants.length > 0 ? 'text-emerald-600' : 'text-gray-300'
+                  }`}
+                >
+                  {occupants.length}
+                </p>
+                <p className="text-xs text-gray-400 mt-1 truncate">
+                  {occupants.length === 0
+                    ? 'vacant'
+                    : occupants.length === 1
+                    ? occupants[0].name
+                    : `${occupants.length} apartments`}
+                </p>
+              </div>
+              <div
+                className={`p-2.5 rounded-xl flex-shrink-0 ${
+                  occupants.length > 0 ? 'bg-emerald-100' : 'bg-gray-100'
+                }`}
+              >
+                <Home
+                  className={`h-5 w-5 ${
+                    occupants.length > 0 ? 'text-emerald-600' : 'text-gray-300'
+                  }`}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue this month */}
+        <Card>
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Revenue
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(thisMonthRev)}
+                </p>
+                <p
+                  className={`text-xs mt-1 ${
+                    revDelta === null
+                      ? 'text-gray-400'
+                      : revDelta >= 0
+                      ? 'text-emerald-600'
+                      : 'text-red-500'
+                  }`}
+                >
+                  {revDelta === null
+                    ? 'this month'
+                    : revDelta >= 0
+                    ? `+${revDelta.toFixed(0)}% vs last month`
+                    : `${revDelta.toFixed(0)}% vs last month`}
+                </p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-50">
+                <TrendingUp className="h-5 w-5 text-emerald-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upcoming arrivals + calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming arrivals */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">
+              Upcoming arrivals{' '}
+              <span className="text-gray-400 font-normal text-sm">· next 14 days</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {arrivals.length === 0 ? (
+              <p className="text-sm text-gray-400 py-6 text-center">
+                No arrivals in the next 14 days
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {arrivals.map((a) => {
+                  const nights =
+                    a.checkOut
+                      ? Math.round(
+                          (a.checkOut.getTime() - a.checkIn.getTime()) / (1000 * 60 * 60 * 24)
+                        )
+                      : null
+                  const isToday = a.checkIn.toDateString() === todayStr
+                  const isTomorrow = a.checkIn.toDateString() === tomorrowStr
+                  const dayLabel = isToday
+                    ? 'Today'
+                    : isTomorrow
+                    ? 'Tomorrow'
+                    : a.checkIn.toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      })
+
+                  return (
+                    <div key={a.id} className="flex items-center justify-between py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm text-gray-900 truncate">
+                            {a.name}
+                          </p>
+                          <span
+                            className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              a.source === 'booking'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}
+                          >
+                            {a.source === 'booking' ? 'Booking' : 'Visit'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {a.apartment}
+                          {nights !== null && (
+                            <> · {nights} night{nights !== 1 ? 's' : ''}</>
+                          )}
+                          {a.phone && <> · {a.phone}</>}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <p
+                          className={`text-sm font-semibold ${
+                            isToday
+                              ? 'text-red-500'
+                              : isTomorrow
+                              ? 'text-amber-500'
+                              : 'text-gray-600'
+                          }`}
+                        >
+                          {dayLabel}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Booking calendar */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Availability</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BookingCalendarWidget />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pending bookings — inline quick-action widget */}
+      <PendingBookingsWidget />
+
+      {/* Pending reviews alert */}
+      {pendingReviewsCount > 0 && (
+        <Link href="/admin/reviews" className="block">
+          <Card className="border-yellow-200 bg-yellow-50 hover:shadow-md transition-shadow">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-400 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-gray-500">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-lg ${stat.color}`}>
-                    <Icon className="h-5 w-5 text-white" />
+                    <p className="text-sm font-medium text-yellow-800">
+                      {pendingReviewsCount} review
+                      {pendingReviewsCount !== 1 ? 's' : ''} waiting for approval
+                    </p>
+                    <p className="text-xs text-yellow-600">Click to review and publish</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Financial Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {formatCurrency(totalRevenue)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Total Costs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-red-600">
-              {formatCurrency(totalCosts)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Net Profit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-3xl font-bold ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatCurrency(netProfit)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Visits */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Visits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentVisits.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No visits yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Guest</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Apartment</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Check In</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Revenue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentVisits.map((visit) => (
-                    <tr key={visit.id} className="border-b last:border-0">
-                      <td className="py-3 px-4">
-                        <p className="font-medium">{visit.user.name}</p>
-                        <p className="text-sm text-gray-500">{visit.user.email}</p>
-                      </td>
-                      <td className="py-3 px-4">{visit.apartment.name}</td>
-                      <td className="py-3 px-4">
-                        {new Date(visit.checkIn).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4 text-right font-medium text-green-600">
-                        {formatCurrency(visit.revenue)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <span className="text-yellow-600 text-sm font-medium flex-shrink-0">
+                  Review →
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
     </div>
   )
 }

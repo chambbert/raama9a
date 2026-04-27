@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Edit, Trash2, Key } from 'lucide-react'
+import { Plus, Edit, Trash2, Key, Copy, Check } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import type { KeyCode, Apartment } from '@/types'
 
@@ -29,6 +29,7 @@ export default function KeyCodesPage() {
   })
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
@@ -55,6 +56,12 @@ export default function KeyCodesPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  const handleCopy = (code: KeyCodeWithApartment) => {
+    navigator.clipboard.writeText(code.code)
+    setCopiedId(code.id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const openCreateModal = () => {
     setEditingItem(null)
@@ -141,6 +148,21 @@ export default function KeyCodesPage() {
     return acc
   }, {} as Record<string, KeyCodeWithApartment[]>)
 
+  const today = new Date().toISOString().split('T')[0]
+
+  const getStatus = (code: KeyCodeWithApartment) => {
+    const validFrom = code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : null
+    const validTo = code.validTo ? new Date(code.validTo).toISOString().split('T')[0] : null
+
+    if (validTo && validTo < today) {
+      return { label: 'Expired', className: 'bg-red-100 text-red-700' }
+    }
+    if (validFrom && validFrom > today) {
+      return { label: 'Upcoming', className: 'bg-blue-100 text-blue-700' }
+    }
+    return { label: 'Active', className: 'bg-emerald-100 text-emerald-700' }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -180,48 +202,65 @@ export default function KeyCodesPage() {
             <div key={apartmentName}>
               <h2 className="text-lg font-semibold mb-3">{apartmentName}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {codes.map((code) => (
-                  <Card key={code.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Key className="h-5 w-5 text-blue-500" />
+                {codes.map((code) => {
+                  const status = getStatus(code)
+                  return (
+                    <Card key={code.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <Key className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <CardTitle className="text-lg">{code.description}</CardTitle>
                           </div>
-                          <CardTitle className="text-lg">{code.description}</CardTitle>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => openEditModal(code)}
+                              className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                              <Edit className="h-4 w-4 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(code.id)}
+                              className="p-2 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
+                      </CardHeader>
+                      <CardContent>
+                        <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between mb-3">
+                          <p className="text-2xl font-mono font-bold tracking-wider">
+                            {code.code}
+                          </p>
                           <button
-                            onClick={() => openEditModal(code)}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            onClick={() => handleCopy(code)}
+                            className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                            title="Copy code"
                           >
-                            <Edit className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(code.id)}
-                            className="p-2 hover:bg-red-50 rounded-lg"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            {copiedId === code.id ? (
+                              <Check className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <Copy className="h-4 w-4 text-gray-500" />
+                            )}
                           </button>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="bg-gray-50 rounded-lg p-3 text-center mb-3">
-                        <p className="text-2xl font-mono font-bold tracking-wider">
-                          {code.code}
-                        </p>
-                      </div>
-                      {(code.validFrom || code.validTo) && (
-                        <p className="text-xs text-gray-500">
-                          Valid: {code.validFrom ? formatDate(code.validFrom) : 'Always'}
-                          {' - '}
-                          {code.validTo ? formatDate(code.validTo) : 'No expiry'}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                        <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mb-2 ${status.className}`}>
+                          {status.label}
+                        </span>
+                        {(code.validFrom || code.validTo) && (
+                          <p className="text-xs text-gray-500">
+                            Valid: {code.validFrom ? formatDate(code.validFrom) : 'Always'}
+                            {' - '}
+                            {code.validTo ? formatDate(code.validTo) : 'No expiry'}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             </div>
           ))}

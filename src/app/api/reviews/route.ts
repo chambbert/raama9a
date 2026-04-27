@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, rating, comment } = validationResult.data
+    const isAdmin = user?.role === 'ADMIN'
 
     const review = await prisma.review.create({
       data: {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         rating,
         comment,
         userId: user?.id || null,
-        approved: false, // Reviews need admin approval
+        approved: isAdmin, // Admin-created reviews are auto-approved
       },
     })
 

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Check, X, Trash2, Star, MessageSquare } from 'lucide-react'
+import { Check, X, Trash2, Star, MessageSquare, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import type { Review } from '@/types'
 
@@ -14,6 +16,12 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
+
+  // Add review modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' })
+  const [addError, setAddError] = useState('')
+  const [addSubmitting, setAddSubmitting] = useState(false)
 
   const fetchReviews = async () => {
     try {
@@ -78,6 +86,43 @@ export default function ReviewsPage() {
     }
   }
 
+  const openAddModal = () => {
+    setNewReview({ name: '', rating: 5, comment: '' })
+    setAddError('')
+    setIsAddModalOpen(true)
+  }
+
+  const handleAddReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAddError('')
+    setAddSubmitting(true)
+
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newReview.name,
+          rating: newReview.rating,
+          comment: newReview.comment,
+        }),
+      })
+
+      if (res.ok) {
+        fetchReviews()
+        setIsAddModalOpen(false)
+      } else {
+        const data = await res.json()
+        setAddError(data.error || 'Failed to add review')
+      }
+    } catch {
+      setAddError('An error occurred')
+    } finally {
+      setAddSubmitting(false)
+    }
+  }
+
   const filteredReviews = reviews.filter((review) => {
     if (filter === 'pending') return !review.approved
     if (filter === 'approved') return review.approved
@@ -95,11 +140,17 @@ export default function ReviewsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Reviews</h1>
           <p className="text-gray-500">Moderate guest reviews</p>
         </div>
-        {pendingCount > 0 && (
-          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-            {pendingCount} pending
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {pendingCount > 0 && (
+            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+              {pendingCount} pending
+            </span>
+          )}
+          <Button onClick={openAddModal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Review
+          </Button>
+        </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
@@ -192,7 +243,7 @@ export default function ReviewsPage() {
                         onClick={() => handleReject(review.id)}
                       >
                         <X className="h-4 w-4 mr-1" />
-                        Hide
+                        Unpublish
                       </Button>
                     )}
                     <Button
@@ -212,6 +263,75 @@ export default function ReviewsPage() {
           ))}
         </div>
       )}
+
+      {/* Add Review Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Add Review"
+      >
+        <form onSubmit={handleAddReview} className="space-y-4">
+          {addError && <Alert variant="error">{addError}</Alert>}
+
+          <Input
+            id="review-name"
+            label="Name"
+            value={newReview.name}
+            onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
+            required
+          />
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Rating</label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setNewReview({ ...newReview, rating: star })}
+                  className="focus:outline-none"
+                >
+                  <Star
+                    className={`h-7 w-7 transition-colors ${
+                      star <= newReview.rating
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300 hover:text-yellow-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700">
+              Comment
+            </label>
+            <textarea
+              id="review-comment"
+              value={newReview.comment}
+              onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+              required
+              rows={4}
+              className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddModalOpen(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={addSubmitting} className="flex-1">
+              Add Review
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

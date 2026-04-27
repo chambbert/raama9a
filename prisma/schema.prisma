@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  phone     String?
-  role      String   @default("CLIENT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  generatedPassword String?  // plaintext stored for admin visibility
+  name              String
+  phone             String?
+  role              String   @default("CLIENT")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   visits        Visit[]
   cleanerVisits Visit[] @relation("CleanerVisits")
@@ -29,12 +30,16 @@ model Apartment {
   description String?
   latitude    Float?
   longitude   Float?
+  cleanerFee  Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   visits         Visit[]
   keyCodes       KeyCode[]
   cleaningTasks  CleaningTask[]
+  pricing        ApartmentPricing[]
+  datePrices     ApartmentDatePrice[]
+  bookings       Booking[]
 }
 
 model Visit {
@@ -174,12 +179,60 @@ model TaskCompletion {
 }
 
 model IncidentReport {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   visitId     String
-  visit       Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  type        String   // 'broken' | 'stolen' | 'other'
+  visit       Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  type        String    // 'broken' | 'stolen' | 'other'
   description String
-  mediaUrls   String?  // JSON array of file URL strings
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  mediaUrls   String?   // JSON array of file URL strings
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ApartmentDatePrice {
+  id          String    @id @default(cuid())
+  apartmentId String
+  date        String    // YYYY-MM-DD
+  price       Float
+  updatedAt   DateTime  @updatedAt
+
+  apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+
+  @@unique([apartmentId, date])
+}
+
+model ApartmentPricing {
+  id            String    @id @default(cuid())
+  apartmentId   String
+  dayOfWeek     Int       // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  pricePerNight Float     @default(0)
+  updatedAt     DateTime  @updatedAt
+
+  apartment     Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+
+  @@unique([apartmentId, dayOfWeek])
+}
+
+model Booking {
+  id             String    @id @default(cuid())
+  apartmentId    String
+  guestName      String
+  guestEmail     String
+  guestPhone     String?
+  checkIn        DateTime
+  checkOut       DateTime
+  adults         Int       @default(1)
+  notes          String?
+  status         String    @default("PENDING") // PENDING | CONFIRMED | REJECTED
+  adminNotes     String?
+  totalPrice     Float     @default(0)
+  cleanerFee     Float     @default(0)
+  priceBreakdown String?   // JSON array of {date, dayOfWeek, price}
+  visitors       String?   // JSON array of {name, birthdate}
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  apartment      Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
 }
