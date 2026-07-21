@@ -18,9 +18,10 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  visits        Visit[]
-  cleanerVisits Visit[] @relation("CleanerVisits")
-  reviews       Review[]
+  visits           Visit[]
+  cleanerVisits    Visit[]           @relation("CleanerVisits")
+  reviews          Review[]
+  tutorialProgress TutorialProgress?
 }
 
 model Apartment {
@@ -89,14 +90,25 @@ model KeyCode {
 }
 
 model Instruction {
-  id        String   @id @default(cuid())
-  category  String
-  title     String
-  content   String
-  imageUrl  String?
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  category      String
+  title         String
+  content       String
+  imageUrl      String?
+  imageUrls     String?  // JSON array of URLs for tutorial carousel
+  order         Int      @default(0)
+  isTutorial    Boolean  @default(false)
+  tutorialOrder Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model TutorialProgress {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  completedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Sightseeing {

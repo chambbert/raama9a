@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   WashingMachine,
   Utensils,
@@ -12,6 +13,7 @@ import {
   Book,
 } from 'lucide-react'
 import { InstructionAccordion } from '@/components/dashboard/instruction-accordion'
+import { TutorialOverlay, type TutorialStep } from '@/components/dashboard/tutorial-overlay'
 
 const categoryIcons: Record<string, React.ElementType> = {
   appliances: WashingMachine,
@@ -24,20 +26,48 @@ const categoryIcons: Record<string, React.ElementType> = {
   coffee: Coffee,
 }
 
-interface Props {
-  categories: string[]
-  grouped: Record<string, { id: string; title: string; content: string; category: string; imageUrl?: string | null }[]>
-  highlight?: string
+interface Instruction {
+  id: string
+  title: string
+  content: string
+  category: string
+  imageUrl?: string | null
+  isTutorial?: boolean
 }
 
-export function InstructionAccordionWrapper({ categories, grouped, highlight }: Props) {
+interface Props {
+  categories: string[]
+  grouped: Record<string, Instruction[]>
+  highlight?: string
+  tutorialSteps: TutorialStep[]
+}
+
+export function InstructionAccordionWrapper({ categories, grouped, highlight, tutorialSteps }: Props) {
+  const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [tutorialInitialStep, setTutorialInitialStep] = useState(0)
+
+  const handlePlayTutorial = (instructionId: string) => {
+    const stepIndex = tutorialSteps.findIndex((s) => s.id === instructionId)
+    setTutorialInitialStep(stepIndex >= 0 ? stepIndex : 0)
+    setTutorialOpen(true)
+  }
+
   return (
-    <InstructionAccordion
-      categories={categories}
-      grouped={grouped}
-      categoryIcons={categoryIcons}
-      defaultIcon={Book}
-      highlight={highlight}
-    />
+    <>
+      <InstructionAccordion
+        categories={categories}
+        grouped={grouped}
+        categoryIcons={categoryIcons}
+        defaultIcon={Book}
+        highlight={highlight}
+        onPlayTutorial={tutorialSteps.length > 0 ? handlePlayTutorial : undefined}
+      />
+      <TutorialOverlay
+        steps={tutorialSteps}
+        isOpen={tutorialOpen}
+        initialStep={tutorialInitialStep}
+        onClose={() => setTutorialOpen(false)}
+      />
+    </>
   )
 }

@@ -7,9 +7,10 @@ interface AnimatedCardProps {
   children: React.ReactNode
   index?: number
   className?: string
+  lift?: boolean
 }
 
-export function AnimatedCard({ children, index = 0, className }: AnimatedCardProps) {
+export function AnimatedCard({ children, index = 0, className, lift = false }: AnimatedCardProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
 
@@ -34,7 +35,7 @@ export function AnimatedCard({ children, index = 0, className }: AnimatedCardPro
   return (
     <div
       ref={ref}
-      className={cn('interactive-card', className)}
+      className={cn(lift && 'interactive-card', className)}
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(20px)',

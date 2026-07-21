@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Plus, Edit, Trash2, Book, Upload, X, ImageIcon, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Edit, Trash2, Book, X, ImageIcon, ChevronUp, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import type { Instruction } from '@/types'
 
@@ -34,13 +34,19 @@ export default function InstructionsPage() {
     title: '',
     content: '',
     order: 0,
+    isTutorial: false,
+    tutorialOrder: 0,
   })
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [removeImage, setRemoveImage] = useState(false)
+  // Tutorial carousel images
+  const [tutorialImages, setTutorialImages] = useState<{ preview: string; file?: File; existingUrl?: string }[]>([])
+  const [removedTutorialUrls, setRemovedTutorialUrls] = useState<string[]>([])
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const tutorialImagesRef = useRef<HTMLInputElement>(null)
 
   const fetchInstructions = async () => {
     try {
@@ -95,10 +101,12 @@ export default function InstructionsPage() {
 
   const openCreateModal = () => {
     setEditingItem(null)
-    setFormData({ category: defaultCategories[0], title: '', content: '', order: 0 })
+    setFormData({ category: defaultCategories[0], title: '', content: '', order: 0, isTutorial: false, tutorialOrder: 0 })
     setImageFile(null)
     setImagePreview(null)
     setRemoveImage(false)
+    setTutorialImages([])
+    setRemovedTutorialUrls([])
     setFormError('')
     setIsModalOpen(true)
   }
@@ -110,10 +118,16 @@ export default function InstructionsPage() {
       title: item.title,
       content: item.content,
       order: item.order,
+      isTutorial: item.isTutorial ?? false,
+      tutorialOrder: item.tutorialOrder ?? 0,
     })
     setImageFile(null)
     setImagePreview(item.imageUrl || null)
     setRemoveImage(false)
+    setTutorialImages(
+      (item.imageUrls ?? []).map((url) => ({ preview: url, existingUrl: url }))
+    )
+    setRemovedTutorialUrls([])
     setFormError('')
     setIsModalOpen(true)
   }
@@ -149,6 +163,28 @@ export default function InstructionsPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const handleTutorialImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    for (const f of files) {
+      if (!allowedTypes.includes(f.type)) { setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF'); return }
+      if (f.size > 5 * 1024 * 1024) { setFormError('File size must be less than 5MB'); return }
+    }
+    setFormError('')
+    const newItems = files.map((file) => {
+      const preview = URL.createObjectURL(file)
+      return { preview, file }
+    })
+    setTutorialImages((prev) => [...prev, ...newItems])
+    if (tutorialImagesRef.current) tutorialImagesRef.current.value = ''
+  }
+
+  const handleRemoveTutorialImage = (index: number) => {
+    const item = tutorialImages[index]
+    if (item.existingUrl) setRemovedTutorialUrls((prev) => [...prev, item.existingUrl!])
+    setTutorialImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
@@ -165,6 +201,8 @@ export default function InstructionsPage() {
       body.append('title', formData.title)
       body.append('content', formData.content)
       body.append('order', formData.order.toString())
+      body.append('isTutorial', formData.isTutorial.toString())
+      body.append('tutorialOrder', formData.tutorialOrder.toString())
 
       if (imageFile) {
         body.append('file', imageFile)
@@ -172,6 +210,14 @@ export default function InstructionsPage() {
 
       if (removeImage) {
         body.append('removeImage', 'true')
+      }
+
+      for (const item of tutorialImages) {
+        if (item.file) body.append('tutorialImages', item.file)
+      }
+
+      if (removedTutorialUrls.length > 0) {
+        body.append('removeTutorialImages', JSON.stringify(removedTutorialUrls))
       }
 
       const res = await fetch(url, {
@@ -269,7 +315,14 @@ export default function InstructionsPage() {
                     )}
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">{item.title}</CardTitle>
+                        <div>
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                          {item.isTutorial && (
+                            <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-sky-50 text-sky-600 border border-sky-200 rounded-full">
+                              Tutorial #{item.tutorialOrder}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           <div className="flex flex-col gap-0.5">
                             <button
@@ -359,6 +412,78 @@ export default function InstructionsPage() {
             rows={6}
             required
           />
+
+          {/* Tutorial settings */}
+          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isTutorial}
+                onChange={(e) => setFormData({ ...formData, isTutorial: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Show in tutorial</p>
+                <p className="text-xs text-gray-400">New guests will see this as a tutorial step on first login</p>
+              </div>
+            </label>
+
+            {formData.isTutorial && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tutorial order</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.tutorialOrder}
+                    onChange={(e) => setFormData({ ...formData, tutorialOrder: parseInt(e.target.value) || 0 })}
+                    className="w-24 h-9 rounded-md border border-gray-300 px-3 text-sm"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Lower numbers appear first</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                    Tutorial images
+                    <span className="text-gray-400 font-normal ml-1">— shown as carousel in the tutorial step</span>
+                  </label>
+
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {tutorialImages.map((img, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-md overflow-hidden border border-gray-200 group">
+                        <Image src={img.preview} alt="" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTutorialImage(i)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-5 w-5 text-white" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => tutorialImagesRef.current?.click()}
+                      className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center gap-1 hover:border-gray-400 transition-colors text-gray-400"
+                    >
+                      <ImageIcon className="h-5 w-5" />
+                      <span className="text-xs">Add</span>
+                    </button>
+                  </div>
+
+                  <input
+                    ref={tutorialImagesRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    onChange={handleTutorialImagesChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Image Upload */}
           <div>

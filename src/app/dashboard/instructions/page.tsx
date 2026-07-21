@@ -1,8 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Book } from 'lucide-react'
 import { InstructionAccordionWrapper } from './instruction-accordion-wrapper'
 
 export default async function InstructionsPage({
@@ -11,60 +9,58 @@ export default async function InstructionsPage({
   searchParams: Promise<{ highlight?: string }>
 }) {
   const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { highlight } = await searchParams
 
-  const instructions = await prisma.instruction.findMany({
-    orderBy: [{ category: 'asc' }, { order: 'asc' }],
-  })
+  const [instructions, tutorialSteps] = await Promise.all([
+    prisma.instruction.findMany({
+      orderBy: [{ category: 'asc' }, { order: 'asc' }],
+    }),
+    prisma.instruction.findMany({
+      where: { isTutorial: true },
+      orderBy: { tutorialOrder: 'asc' },
+      select: { id: true, title: true, content: true, imageUrl: true, imageUrls: true, tutorialOrder: true },
+    }),
+  ])
 
-  // Group by category
-  const grouped = instructions.reduce((acc, instruction) => {
-    if (!acc[instruction.category]) {
-      acc[instruction.category] = []
-    }
-    acc[instruction.category].push({
-      id: instruction.id,
-      title: instruction.title,
-      content: instruction.content,
-      category: instruction.category,
-      imageUrl: instruction.imageUrl,
+  const parsedTutorialSteps = tutorialSteps.map((s) => ({
+    ...s,
+    imageUrls: s.imageUrls ? (JSON.parse(s.imageUrls) as string[]) : null,
+  }))
+
+  const grouped = instructions.reduce((acc, i) => {
+    if (!acc[i.category]) acc[i.category] = []
+    acc[i.category].push({
+      id: i.id,
+      title: i.title,
+      content: i.content,
+      category: i.category,
+      imageUrl: i.imageUrl,
+      isTutorial: i.isTutorial,
     })
     return acc
-  }, {} as Record<string, { id: string; title: string; content: string; category: string; imageUrl: string | null }[]>)
+  }, {} as Record<string, { id: string; title: string; content: string; category: string; imageUrl: string | null; isTutorial: boolean }[]>)
 
   const categories = Object.keys(grouped)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
-        <p className="text-gray-500">Guides for using the apartment amenities</p>
+        <p className="text-xs tracking-widest uppercase text-sky-600 mb-1">Apartment guide</p>
+        <h1 className="font-serif-display text-3xl font-light text-stone-800 tracking-wide">Instructions</h1>
       </div>
 
       {categories.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Book className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Instructions Available
-              </h3>
-              <p className="text-gray-500">
-                Instructions will appear here once your host adds them.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-white border border-stone-100 p-12 text-center">
+          <p className="text-xs tracking-widest uppercase text-stone-400">No instructions yet</p>
+        </div>
       ) : (
         <InstructionAccordionWrapper
           categories={categories}
           grouped={grouped}
           highlight={highlight}
+          tutorialSteps={parsedTutorialSteps}
         />
       )}
     </div>

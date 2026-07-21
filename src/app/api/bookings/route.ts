@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { bookingSchema } from '@/lib/validation'
-
-function datesOverlap(
-  aStart: Date, aEnd: Date,
-  bStart: Date, bEnd: Date
-): boolean {
-  return aStart < bEnd && bStart < aEnd
-}
+import { hasBookingConflict, calculateBookingPrice } from '@/lib/booking'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,25 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check availability against confirmed bookings and visits
-    const [conflictingBookings, conflictingVisits] = await Promise.all([
-      prisma.booking.findMany({
-        where: {
-          apartmentId,
-          status: 'CONFIRMED',
-          checkIn: { lt: checkOutDate },
-          checkOut: { gt: checkInDate },
-        },
-      }),
-      prisma.visit.findMany({
-        where: {
-          apartmentId,
-          checkIn: { lt: checkOutDate },
-          checkOut: { gt: checkInDate },
-        },
-      }),
-    ])
-
-    if (conflictingBookings.length > 0 || conflictingVisits.length > 0) {
+    if (await hasBookingConflict(apartmentId, checkInDate, checkOutDate)) {
       return NextResponse.json(
         { error: 'These dates are not available. Please choose different dates.' },
         { status: 409 }
@@ -72,26 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate price breakdown (date-specific price takes priority over day-of-week)
-    const pricingMap = new Map(apartment.pricing.map((p) => [p.dayOfWeek, p.pricePerNight]))
-    const datePriceMap = new Map(apartment.datePrices.map((dp) => [dp.date, dp.price]))
-    const priceBreakdown: { date: string; dayOfWeek: number; price: number }[] = []
-    let accommodationTotal = 0
-
-    const current = new Date(checkInDate)
-    while (current < checkOutDate) {
-      const dayOfWeek = current.getDay()
-      const dateStr = current.toISOString().split('T')[0]
-      const price = datePriceMap.get(dateStr) ?? pricingMap.get(dayOfWeek) ?? 0
-      priceBreakdown.push({
-        date: current.toISOString().split('T')[0],
-        dayOfWeek,
-        price,
-      })
-      accommodationTotal += price
-      current.setDate(current.getDate() + 1)
-    }
-
-    const totalPrice = accommodationTotal + apartment.cleanerFee
+    const { priceBreakdown, totalPrice } = calculateBookingPrice(apartment, checkInDate, checkOutDate)
 
     const booking = await prisma.booking.create({
       data: {

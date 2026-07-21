@@ -130,7 +130,10 @@ export interface Instruction {
   title: string
   content: string
   imageUrl: string | null
+  imageUrls: string[] | null
   order: number
+  isTutorial: boolean
+  tutorialOrder: number
 }
 
 export interface Sightseeing {

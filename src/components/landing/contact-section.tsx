@@ -1,4 +1,4 @@
-import { Mail, Phone, MessageCircle } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 
 interface ContactSectionProps {
   email: string | null
@@ -9,23 +9,27 @@ export function ContactSection({ email, phone }: ContactSectionProps) {
   if (!email && !phone) return null
 
   return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Contact Us</h2>
+    <section className="py-24 bg-stone-50">
+      <div className="container mx-auto px-6">
+        <div className="text-center mb-16">
+          <p className="text-xs tracking-widest uppercase text-sky-600 mb-3">Get in touch</p>
+          <h2 className="font-serif-display text-4xl md:text-5xl font-light text-stone-800 tracking-wide">
+            Contact
+          </h2>
+          <div className="w-8 h-px bg-stone-300 mx-auto mt-5" />
+        </div>
 
-        <div className="max-w-2xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="max-w-xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {email && (
               <a
                 href={`mailto:${email}`}
-                className="flex items-center gap-4 p-6 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-4 p-6 bg-white border border-stone-100 hover:border-sky-200 transition-colors group"
               >
-                <div className="p-3 rounded-full bg-red-100">
-                  <Mail className="h-6 w-6 text-red-500" />
-                </div>
+                <Mail className="h-5 w-5 text-sky-600 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Email</h3>
-                  <p className="text-gray-600">{email}</p>
+                  <p className="text-xs tracking-widest uppercase text-stone-400 mb-1">Email</p>
+                  <p className="text-sm text-stone-700">{email}</p>
                 </div>
               </a>
             )}
@@ -33,23 +37,15 @@ export function ContactSection({ email, phone }: ContactSectionProps) {
             {phone && (
               <a
                 href={`tel:${phone}`}
-                className="flex items-center gap-4 p-6 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-4 p-6 bg-white border border-stone-100 hover:border-sky-200 transition-colors group"
               >
-                <div className="p-3 rounded-full bg-red-100">
-                  <Phone className="h-6 w-6 text-red-500" />
-                </div>
+                <Phone className="h-5 w-5 text-sky-600 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Phone</h3>
-                  <p className="text-gray-600">{phone}</p>
+                  <p className="text-xs tracking-widest uppercase text-stone-400 mb-1">Phone</p>
+                  <p className="text-sm text-stone-700">{phone}</p>
                 </div>
               </a>
             )}
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-gray-600">
-              Have questions? We&apos;re here to help you have the best stay possible.
-            </p>
           </div>
         </div>
       </div>

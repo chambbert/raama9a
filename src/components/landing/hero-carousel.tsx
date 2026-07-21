@@ -16,66 +16,60 @@ export function HeroCarousel({ images, siteName }: HeroCarouselProps) {
 
   useEffect(() => {
     if (images.length <= 1) return
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length)
-    }, 5000)
-
+    }, 6000)
     return () => clearInterval(interval)
   }, [images.length])
 
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length)
-  }
+  const goToPrevious = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+  const goToNext = () => setCurrentIndex((prev) => (prev + 1) % images.length)
 
   if (images.length === 0) {
     return (
-      <section className="relative h-[60vh] md:h-[80vh] bg-gray-200 flex items-center justify-center">
+      <section className="relative h-[70vh] md:h-screen bg-stone-100 flex items-center justify-center pt-16">
         <div className="text-center px-4">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-4">
+          <p className="text-xs tracking-widest uppercase text-stone-400 mb-4">Pärnu · Estonia</p>
+          <h1 className="font-serif-display text-5xl md:text-7xl font-light text-stone-800 tracking-wide mb-4">
             {siteName}
           </h1>
-          <p className="text-xl text-gray-600">Your perfect getaway awaits</p>
+          <p className="text-sm tracking-widest uppercase text-stone-400">Riverside Apartment</p>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
+    <section className="relative h-[70vh] md:h-screen overflow-hidden pt-16">
       {images.map((image, index) => (
         <div
           key={image.id}
           className={cn(
-            'absolute inset-0 transition-opacity duration-1000',
+            'absolute inset-0 transition-opacity duration-1500',
             index === currentIndex ? 'opacity-100' : 'opacity-0'
           )}
         >
           <Image
             src={image.imageUrl}
-            alt={image.title || 'Hero image'}
+            alt={image.title || 'Rääma 9a – Riverside Apartment Pärnu'}
             fill
             className="object-cover"
             priority={index === 0}
           />
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/25" />
         </div>
       ))}
 
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center text-white px-4">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-            {siteName}
+          <p className="text-xs tracking-widest uppercase text-white/70 mb-6">Pärnu · Estonia</p>
+          <h1 className="font-serif-display text-5xl md:text-8xl font-light tracking-wide drop-shadow-sm mb-4">
+            Rääma 9a
           </h1>
-          {images[currentIndex]?.title && (
-            <p className="text-xl md:text-2xl drop-shadow-md">
-              {images[currentIndex].title}
-            </p>
-          )}
+          <div className="w-12 h-px bg-white/50 mx-auto mb-4" />
+          <p className="text-xs tracking-widest uppercase text-white/70">
+            Riverside Apartment
+          </p>
         </div>
       </div>
 
@@ -83,27 +77,27 @@ export function HeroCarousel({ images, siteName }: HeroCarouselProps) {
         <>
           <button
             onClick={goToPrevious}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+            className="absolute left-6 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white transition-colors"
             aria-label="Previous image"
           >
-            <ChevronLeft className="h-6 w-6 text-gray-800" />
+            <ChevronLeft className="h-6 w-6" />
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+            className="absolute right-6 top-1/2 -translate-y-1/2 p-2 text-white/60 hover:text-white transition-colors"
             aria-label="Next image"
           >
-            <ChevronRight className="h-6 w-6 text-gray-800" />
+            <ChevronRight className="h-6 w-6" />
           </button>
 
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
             {images.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
                 className={cn(
-                  'w-3 h-3 rounded-full transition-colors',
-                  index === currentIndex ? 'bg-white' : 'bg-white/50'
+                  'w-1 h-1 rounded-full transition-all duration-300',
+                  index === currentIndex ? 'bg-white w-6' : 'bg-white/40'
                 )}
                 aria-label={`Go to slide ${index + 1}`}
               />

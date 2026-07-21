@@ -1,21 +1,26 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Cormorant_Garamond } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import { AuthProvider } from '@/components/providers/auth-provider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-cormorant',
+})
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://raama9a.ee'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Raama 9a – Riverside Apartment in Pärnu | River View Accommodation',
-    template: '%s | Raama 9a Pärnu',
+    default: 'Rääma 9a – Riverside Apartment in Pärnu | River View Accommodation',
+    template: '%s | Rääma 9a Pärnu',
   },
   description:
-    'Raama 9a – a cozy riverside apartment in Pärnu, Estonia with stunning river views. ' +
+    'Rääma 9a – a cozy riverside apartment in Pärnu, Estonia with stunning river views. ' +
     'Modern, comfortable Pärnu accommodation perfect for short stays, holidays and business trips. ' +
     'Book your stay at this unique river view apartment today.',
   keywords: [
@@ -36,9 +41,9 @@ export const metadata: Metadata = {
     'Pärnu riverfront apartment',
     'Estonia apartment rental',
   ],
-  authors: [{ name: 'Raama 9a' }],
-  creator: 'Raama 9a',
-  publisher: 'Raama 9a',
+  authors: [{ name: 'Rääma 9a' }],
+  creator: 'Rääma 9a',
+  publisher: 'Rääma 9a',
   robots: {
     index: true,
     follow: true,
@@ -57,23 +62,23 @@ export const metadata: Metadata = {
     locale: 'en_US',
     alternateLocale: 'et_EE',
     url: siteUrl,
-    siteName: 'Raama 9a – Riverside Apartment Pärnu',
-    title: 'Raama 9a – Cozy Riverside Apartment in Pärnu',
+    siteName: 'Rääma 9a – Riverside Apartment Pärnu',
+    title: 'Rääma 9a – Cozy Riverside Apartment in Pärnu',
     description:
-      'Stay at Raama 9a, a beautiful riverside apartment in Pärnu, Estonia. ' +
+      'Stay at Rääma 9a, a beautiful riverside apartment in Pärnu, Estonia. ' +
       'Enjoy river views, modern amenities, and a cozy atmosphere in the heart of Pärnu.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Raama 9a – Riverside Apartment in Pärnu',
+        alt: 'Rääma 9a – Riverside Apartment in Pärnu',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Raama 9a – Riverside Apartment in Pärnu',
+    title: 'Rääma 9a – Riverside Apartment in Pärnu',
     description:
       'Cozy river view apartment in Pärnu, Estonia. Modern amenities, stunning riverside location.',
     images: ['/og-image.jpg'],
@@ -87,7 +92,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
         <AuthProvider>
           {children}
         </AuthProvider>

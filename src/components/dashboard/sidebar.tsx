@@ -1,34 +1,22 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { cn } from '@/lib/utils'
-import {
-  Home,
-  Key,
-  Book,
-  MapPin,
-  Star,
-  Menu,
-  X,
-  LogOut,
-  User,
-} from 'lucide-react'
+import { Home, Key, Book, MapPin, Star, LogOut, User } from 'lucide-react'
 
-const clientNavItems = [
+const navItems = [
   { href: '/dashboard', label: 'Overview', icon: Home },
   { href: '/dashboard/key-codes', label: 'Key Codes', icon: Key },
   { href: '/dashboard/instructions', label: 'Instructions', icon: Book },
   { href: '/dashboard/sightseeing', label: 'Sightseeing', icon: MapPin },
-  { href: '/dashboard/review', label: 'Leave a Review', icon: Star },
+  { href: '/dashboard/review', label: 'Review', icon: Star },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -37,89 +25,96 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md"
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden lg:flex flex-col w-60 min-h-screen bg-stone-900 flex-shrink-0">
+        {/* Logo */}
+        <div className="px-8 py-8 border-b border-stone-800">
+          <Link href="/">
+            <p className="text-xs tracking-widest uppercase text-sky-500 mb-1">Pärnu · Estonia</p>
+            <h1 className="font-serif-display text-xl font-light tracking-widest text-white uppercase">
+              Rääma 9a
+            </h1>
+          </Link>
+        </div>
 
-      {/* Overlay */}
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+        {/* Nav */}
+        <nav className="flex-1 px-4 py-6 space-y-1">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 transition-colors',
+                  isActive
+                    ? 'text-white bg-stone-800 border-l-2 border-sky-500'
+                    : 'text-stone-400 hover:text-white hover:bg-stone-800/50 border-l-2 border-transparent'
+                )}
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span className="text-xs tracking-widest uppercase">{label}</span>
+              </Link>
+            )
+          })}
+        </nav>
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform lg:transform-none',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b">
-            <Link href="/" className="text-xl font-bold text-red-500">
-              StayHost
-            </Link>
-          </div>
-
-          {/* User Info */}
-          <div className="p-4 border-b">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <User className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="overflow-hidden">
-                <p className="font-medium truncate">{user?.name}</p>
-                <p className="text-sm text-gray-500 truncate">{user?.email}</p>
-              </div>
+        {/* User + logout */}
+        <div className="px-6 py-6 border-t border-stone-800 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center flex-shrink-0">
+              <User className="h-4 w-4 text-stone-300" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs text-stone-200 truncate">{user?.name}</p>
+              <p className="text-xs text-stone-500 truncate">{user?.email}</p>
             </div>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {clientNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative',
-                    isActive
-                      ? 'bg-red-50 text-red-600'
-                      : 'text-gray-600 hover:bg-gray-100 hover:translate-x-1'
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-500 rounded-r-full" />
-                  )}
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Logout */}
-          <div className="p-4 border-t">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-xs tracking-widest uppercase text-stone-500 hover:text-white transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Logout
+          </button>
         </div>
       </aside>
+
+      {/* ── Mobile top bar ── */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-stone-900 flex items-center justify-between px-5 py-4 border-b border-stone-800">
+        <Link href="/">
+          <span className="font-serif-display text-lg font-light tracking-widest text-white uppercase">
+            Rääma 9a
+          </span>
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="text-stone-400 hover:text-white transition-colors"
+          aria-label="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </header>
+
+      {/* ── Mobile bottom nav ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-900 border-t border-stone-800 flex">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname === href
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors',
+                isActive ? 'text-sky-400' : 'text-stone-500 hover:text-stone-300'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[9px] tracking-wider uppercase">{label}</span>
+            </Link>
+          )
+        })}
+      </nav>
     </>
   )
 }

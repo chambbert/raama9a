@@ -4,6 +4,29 @@ import { requireAdmin } from '@/lib/auth'
 import { writeFile, mkdir, unlink } from 'fs/promises'
 import path from 'path'
 
+async function saveUploadedFile(file: File): Promise<string> {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+  if (file.size > 5 * 1024 * 1024) throw new Error('File size must be less than 5MB')
+
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+  await mkdir(uploadsDir, { recursive: true })
+
+  const ext = path.extname(file.name) || '.jpg'
+  const filename = `instruction-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+  const bytes = await file.arrayBuffer()
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes))
+  return `/uploads/${filename}`
+}
+
+async function tryUnlink(url: string) {
+  try {
+    await unlink(path.join(process.cwd(), 'public', url))
+  } catch {
+    // File may not exist
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,77 +45,65 @@ export async function PUT(
       const content = formData.get('content') as string | null
       const orderStr = formData.get('order') as string | null
       const removeImage = formData.get('removeImage') as string | null
+      const isTutorialStr = formData.get('isTutorial') as string | null
+      const tutorialOrderStr = formData.get('tutorialOrder') as string | null
+      const tutorialImageFiles = formData.getAll('tutorialImages') as File[]
+      // JSON array of existing URLs to remove
+      const removeTutorialImagesStr = formData.get('removeTutorialImages') as string | null
 
+      const existing = await prisma.instruction.findUnique({ where: { id } })
       const data: Record<string, unknown> = {}
+
       if (category !== null) data.category = category
       if (title !== null) data.title = title
       if (content !== null) data.content = content
       if (orderStr !== null) data.order = parseInt(orderStr) || 0
+      if (isTutorialStr !== null) data.isTutorial = isTutorialStr === 'true'
+      if (tutorialOrderStr !== null) data.tutorialOrder = parseInt(tutorialOrderStr) || 0
 
-      // Handle image removal
+      // Handle main image removal
       if (removeImage === 'true') {
-        const existing = await prisma.instruction.findUnique({ where: { id } })
-        if (existing?.imageUrl) {
-          try {
-            const oldPath = path.join(process.cwd(), 'public', existing.imageUrl)
-            await unlink(oldPath)
-          } catch {
-            // File may not exist, continue
-          }
-        }
+        if (existing?.imageUrl) await tryUnlink(existing.imageUrl)
         data.imageUrl = null
       }
 
-      // Handle new file upload
+      // Handle main image upload
       if (file && file.size > 0) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        if (!allowedTypes.includes(file.type)) {
-          return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
-            { status: 400 }
-          )
+        if (existing?.imageUrl) await tryUnlink(existing.imageUrl)
+        try {
+          data.imageUrl = await saveUploadedFile(file)
+        } catch (e) {
+          return NextResponse.json({ error: (e as Error).message }, { status: 400 })
         }
-
-        if (file.size > 5 * 1024 * 1024) {
-          return NextResponse.json(
-            { error: 'File size must be less than 5MB' },
-            { status: 400 }
-          )
-        }
-
-        // Delete old image if exists
-        const existing = await prisma.instruction.findUnique({ where: { id } })
-        if (existing?.imageUrl) {
-          try {
-            const oldPath = path.join(process.cwd(), 'public', existing.imageUrl)
-            await unlink(oldPath)
-          } catch {
-            // File may not exist, continue
-          }
-        }
-
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadsDir, { recursive: true })
-
-        const ext = path.extname(file.name)
-        const filename = `instruction-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const filepath = path.join(uploadsDir, filename)
-
-        const bytes = await file.arrayBuffer()
-        await writeFile(filepath, Buffer.from(bytes))
-
-        data.imageUrl = `/uploads/${filename}`
       }
 
-      const instruction = await prisma.instruction.update({
-        where: { id },
-        data,
-      })
+      // Handle tutorial carousel images
+      const existingUrls: string[] = existing?.imageUrls ? JSON.parse(existing.imageUrls) : []
+      const urlsToRemove: string[] = removeTutorialImagesStr ? JSON.parse(removeTutorialImagesStr) : []
 
+      // Delete removed files
+      for (const url of urlsToRemove) await tryUnlink(url)
+
+      // Upload new files
+      const newUrls: string[] = []
+      for (const f of tutorialImageFiles) {
+        if (f && f.size > 0) {
+          try {
+            newUrls.push(await saveUploadedFile(f))
+          } catch (e) {
+            return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+          }
+        }
+      }
+
+      const updatedUrls = [...existingUrls.filter((u) => !urlsToRemove.includes(u)), ...newUrls]
+      data.imageUrls = updatedUrls.length > 0 ? JSON.stringify(updatedUrls) : null
+
+      const instruction = await prisma.instruction.update({ where: { id }, data })
       return NextResponse.json({ instruction })
     } else {
       const body = await request.json()
-      const { category, title, content, order, imageUrl } = body
+      const { category, title, content, order, imageUrl, isTutorial, tutorialOrder } = body
 
       const instruction = await prisma.instruction.update({
         where: { id },
@@ -102,6 +113,8 @@ export async function PUT(
           ...(content !== undefined && { content }),
           ...(order !== undefined && { order }),
           ...(imageUrl !== undefined && { imageUrl }),
+          ...(isTutorial !== undefined && { isTutorial }),
+          ...(tutorialOrder !== undefined && { tutorialOrder }),
         },
       })
 
@@ -127,19 +140,14 @@ export async function DELETE(
     await requireAdmin()
     const { id } = await params
 
-    // Delete associated image file
     const instruction = await prisma.instruction.findUnique({ where: { id } })
-    if (instruction?.imageUrl) {
-      try {
-        const imagePath = path.join(process.cwd(), 'public', instruction.imageUrl)
-        await unlink(imagePath)
-      } catch {
-        // File may not exist, continue
-      }
+    if (instruction?.imageUrl) await tryUnlink(instruction.imageUrl)
+    if (instruction?.imageUrls) {
+      const urls: string[] = JSON.parse(instruction.imageUrls)
+      for (const url of urls) await tryUnlink(url)
     }
 
     await prisma.instruction.delete({ where: { id } })
-
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Forbidden') {

@@ -1,173 +1,159 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Key, Book, MapPin, Star, Calendar, ArrowRight } from 'lucide-react'
+import { Key, Book, MapPin, Star, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { SearchBar } from '@/components/dashboard/search-bar'
 import { AnimatedCard } from '@/components/dashboard/animated-card'
+import { TutorialLauncher } from '@/components/dashboard/tutorial-launcher'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
+  if (!user) redirect('/login')
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Get user's active visit
   const now = new Date()
   const activeVisit = await prisma.visit.findFirst({
     where: {
       userId: user.id,
       checkIn: { lte: now },
-      OR: [
-        { checkOut: null },
-        { checkOut: { gte: now } },
-      ],
+      OR: [{ checkOut: null }, { checkOut: { gte: now } }],
     },
-    include: {
-      apartment: true,
-    },
+    include: { apartment: true },
   })
 
-  // Get counts for dashboard cards
-  const [keyCodesCount, instructionsCount, sightseeingCount] = await Promise.all([
-    activeVisit
-      ? prisma.keyCode.count({ where: { apartmentId: activeVisit.apartmentId } })
-      : 0,
-    prisma.instruction.count(),
-    prisma.sightseeing.count(),
-  ])
+  const [keyCodesCount, instructionsCount, sightseeingCount, tutorialSteps, tutorialProgress] =
+    await Promise.all([
+      activeVisit
+        ? prisma.keyCode.count({ where: { apartmentId: activeVisit.apartmentId } })
+        : 0,
+      prisma.instruction.count(),
+      prisma.sightseeing.count(),
+      prisma.instruction.findMany({
+        where: { isTutorial: true },
+        orderBy: { tutorialOrder: 'asc' },
+        select: { id: true, title: true, content: true, imageUrl: true, imageUrls: true, tutorialOrder: true },
+      }),
+      prisma.tutorialProgress.findUnique({ where: { userId: user.id } }),
+    ])
 
-  // Determine greeting based on server time
+  const parsedTutorialSteps = tutorialSteps.map((s) => ({
+    ...s,
+    imageUrls: s.imageUrls ? (JSON.parse(s.imageUrls) as string[]) : null,
+  }))
+
   const hour = now.getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-  const dashboardCards = [
+  const cards = [
     {
       title: 'Key Codes',
       value: keyCodesCount,
-      description: 'Door codes and access pins for your apartment',
+      description: 'Door codes & access pins',
       icon: Key,
       href: '/dashboard/key-codes',
-      color: 'bg-blue-500',
-      lightColor: 'bg-blue-50',
     },
     {
       title: 'Instructions',
       value: instructionsCount,
-      description: 'How-to guides for appliances and amenities',
+      description: 'How-to guides for appliances',
       icon: Book,
       href: '/dashboard/instructions',
-      color: 'bg-green-500',
-      lightColor: 'bg-green-50',
     },
     {
       title: 'Sightseeing',
       value: sightseeingCount,
-      description: 'Our favourite local spots and hidden gems',
+      description: 'Local spots & hidden gems',
       icon: MapPin,
       href: '/dashboard/sightseeing',
-      color: 'bg-purple-500',
-      lightColor: 'bg-purple-50',
     },
     {
       title: 'Review',
       value: null,
-      description: 'Tell us about your stay — we\'d love your feedback',
+      description: 'Share your experience',
       icon: Star,
       href: '/dashboard/review',
-      color: 'bg-yellow-500',
-      lightColor: 'bg-yellow-50',
     },
   ]
 
   return (
     <div className="space-y-8">
+      <TutorialLauncher
+        steps={parsedTutorialSteps}
+        autoShow={!tutorialProgress && parsedTutorialSteps.length > 0}
+      />
+      {/* Greeting */}
       <div>
-        <p className="text-sm font-medium text-red-500 mb-1">{greeting}</p>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {user.name}!
+        <p className="text-xs tracking-widest uppercase text-sky-600 mb-1">{greeting}</p>
+        <h1 className="font-serif-display text-3xl font-light text-stone-800 tracking-wide">
+          {user.name}
         </h1>
-        <p className="text-gray-500">Here&apos;s everything you need for your stay</p>
       </div>
 
       <SearchBar />
 
-      {activeVisit && (
+      {/* Active stay */}
+      {activeVisit ? (
         <AnimatedCard index={0}>
-          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white overflow-hidden">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-5">
-                <div className="p-4 bg-white/20 rounded-xl">
-                  <Calendar className="h-8 w-8" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">Current Stay</h3>
-                  <p className="text-white/90 font-medium">
-                    {activeVisit.apartment.name}
-                  </p>
-                  <p className="text-sm text-white/70">
-                    {activeVisit.apartment.address}
-                  </p>
-                  <div className="flex gap-6 mt-3">
-                    <div>
-                      <p className="text-xs text-white/60 uppercase tracking-wide">Check-in</p>
-                      <p className="text-sm font-medium text-white/90">{formatDate(activeVisit.checkIn)}</p>
-                    </div>
-                    {activeVisit.checkOut && (
-                      <div>
-                        <p className="text-xs text-white/60 uppercase tracking-wide">Check-out</p>
-                        <p className="text-sm font-medium text-white/90">{formatDate(activeVisit.checkOut)}</p>
-                      </div>
-                    )}
+          <div className="bg-stone-900 text-white p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-2.5 bg-stone-800 flex-shrink-0">
+                <Calendar className="h-5 w-5 text-sky-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs tracking-widest uppercase text-stone-400 mb-1">Current stay</p>
+                <p className="font-serif-display text-xl font-light tracking-wide text-white">
+                  {activeVisit.apartment.name}
+                </p>
+                <p className="text-sm text-stone-400 mt-0.5 truncate">{activeVisit.apartment.address}</p>
+                <div className="flex gap-8 mt-4">
+                  <div>
+                    <p className="text-xs tracking-widest uppercase text-stone-500">Check-in</p>
+                    <p className="text-sm text-stone-200 mt-0.5">{formatDate(activeVisit.checkIn)}</p>
                   </div>
+                  {activeVisit.checkOut && (
+                    <div>
+                      <p className="text-xs tracking-widest uppercase text-stone-500">Check-out</p>
+                      <p className="text-sm text-stone-200 mt-0.5">{formatDate(activeVisit.checkOut)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-      )}
-
-      {!activeVisit && (
-        <Card className="bg-gray-100">
-          <CardContent className="pt-6">
-            <div className="text-center py-4">
-              <p className="text-gray-600">
-                No active stay found. Contact your host if you believe this is an error.
-              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </AnimatedCard>
+      ) : (
+        <div className="border border-stone-200 bg-white/80 backdrop-blur-sm p-6 text-center">
+          <p className="text-sm text-stone-400">
+            No active stay. Key codes will appear here during your visit.
+          </p>
+        </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {dashboardCards.map((card, index) => {
+      {/* Quick access cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+        {cards.map((card, index) => {
           const Icon = card.icon
+          const isAccent = index === 0 // Key Codes gets highlight treatment
           return (
-            <AnimatedCard key={card.href} index={index + 1}>
-              <Link href={card.href}>
-                <Card className="cursor-pointer h-full group">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
-                      {card.title}
-                    </CardTitle>
-                    <div className={`p-2 rounded-lg ${card.color} transition-transform duration-200 group-hover:scale-110`}>
-                      <Icon className="h-4 w-4 text-white" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {card.value !== null && (
-                      <p className="text-2xl font-bold">{card.value}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">{card.description}</p>
-                    <div className="flex items-center gap-1 mt-3 text-xs font-medium text-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <span>View</span>
-                      <ArrowRight className="h-3 w-3" />
-                    </div>
-                  </CardContent>
-                </Card>
+            <AnimatedCard key={card.href} index={index + 1} className="h-full">
+              <Link href={card.href} className="flex h-full group">
+                <div className={`flex flex-col w-full p-5 border-t-2 transition-colors ${
+                  isAccent
+                    ? 'bg-sky-600 border-sky-500 text-white'
+                    : 'bg-white/80 backdrop-blur-sm border-stone-200 hover:border-sky-400'
+                }`}>
+                  <Icon className={`h-5 w-5 mb-4 ${isAccent ? 'text-white/80' : 'text-sky-600'}`} />
+                  <p className={`text-xs tracking-widest uppercase font-medium mb-2 ${isAccent ? 'text-white/70' : 'text-stone-500'}`}>
+                    {card.title}
+                  </p>
+                  <p className={`font-serif-display text-3xl font-light mb-1 ${isAccent ? 'text-white' : 'text-stone-800'}`}>
+                    {card.value !== null ? card.value : '→'}
+                  </p>
+                  <p className={`text-xs leading-relaxed mt-auto pt-3 ${isAccent ? 'text-white/60' : 'text-stone-400'}`}>
+                    {card.description}
+                  </p>
+                </div>
               </Link>
             </AnimatedCard>
           )

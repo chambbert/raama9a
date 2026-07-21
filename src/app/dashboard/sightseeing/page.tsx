@@ -1,8 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { MapPin } from 'lucide-react'
 import { SightseeingFilter } from '@/components/dashboard/sightseeing-filter'
 
 export default async function SightseeingPage({
@@ -11,10 +9,7 @@ export default async function SightseeingPage({
   searchParams: Promise<{ highlight?: string }>
 }) {
   const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { highlight } = await searchParams
 
@@ -22,10 +17,7 @@ export default async function SightseeingPage({
     orderBy: [{ category: 'asc' }, { order: 'asc' }],
   })
 
-  // Get unique categories in order
   const categories = [...new Set(sightseeing.map((item) => item.category))]
-
-  // Flatten items with serializable data
   const allItems = sightseeing.map((item) => ({
     id: item.id,
     name: item.name,
@@ -36,32 +28,18 @@ export default async function SightseeingPage({
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Sightseeing</h1>
-        <p className="text-gray-500">Local recommendations and places to visit</p>
+        <p className="text-xs tracking-widest uppercase text-sky-600 mb-1">Explore Pärnu</p>
+        <h1 className="font-serif-display text-3xl font-light text-stone-800 tracking-wide">Sightseeing</h1>
       </div>
 
       {categories.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Recommendations Yet
-              </h3>
-              <p className="text-gray-500">
-                Your host will add local recommendations here.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-white/80 backdrop-blur-sm border border-stone-100 p-12 text-center">
+          <p className="text-xs tracking-widest uppercase text-stone-400">No recommendations yet</p>
+        </div>
       ) : (
-        <SightseeingFilter
-          categories={categories}
-          allItems={allItems}
-          highlight={highlight}
-        />
+        <SightseeingFilter categories={categories} allItems={allItems} highlight={highlight} />
       )}
     </div>
   )

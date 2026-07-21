@@ -74,7 +74,10 @@ export const instructionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Content is required'),
   imageUrl: z.string().optional().nullable(),
+  imageUrls: z.string().optional().nullable(),
   order: z.number().default(0),
+  isTutorial: z.boolean().default(false),
+  tutorialOrder: z.number().default(0),
 })
 
 // Sightseeing schemas
@@ -132,6 +135,15 @@ export const bookingSchema = z.object({
     name: z.string().min(2, 'Each visitor name must be at least 2 characters'),
     birthdate: z.string().min(1, 'Each visitor birthdate is required'),
   })).min(1, 'At least one visitor is required'),
+})
+
+// Admin-created booking schema — admin books directly (e.g. an owner/family stay),
+// so it's created already CONFIRMED and doesn't need a full visitor list.
+export const adminBookingSchema = bookingSchema.extend({
+  visitors: z.array(z.object({
+    name: z.string().min(2, 'Each visitor name must be at least 2 characters'),
+    birthdate: z.string().min(1, 'Each visitor birthdate is required'),
+  })).optional().default([]),
 })
 
 // Apartment pricing schema

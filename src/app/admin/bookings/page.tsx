@@ -6,8 +6,24 @@ import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { Calendar, Check, X, Trash2, User, Mail, Phone, Users } from 'lucide-react'
-import type { Booking, BookingStatus, PriceBreakdownItem, Visitor } from '@/types'
+import { Input } from '@/components/ui/input'
+import { Calendar, Check, X, Trash2, User, Mail, Phone, Users, Pencil, Eye, EyeOff, Copy, Check as CheckIcon, Send } from 'lucide-react'
+import type { Booking, BookingStatus, PriceBreakdownItem, Visitor, User as ClientUser } from '@/types'
+
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://raama9a.ee'
+
+function loginInfoMailto(account: ClientUser, guestName: string): string {
+  const subject = encodeURIComponent('Your login details')
+  const body = encodeURIComponent(
+    `Hi ${guestName},\n\n` +
+    `Here's how to log in and see your check-in instructions, key codes and more:\n\n` +
+    `${SITE_URL}/login\n` +
+    `Email: ${account.email}\n` +
+    `Password: ${account.generatedPassword}\n\n` +
+    `See you soon!`
+  )
+  return `mailto:${account.email}?subject=${subject}&body=${body}`
+}
 
 function formatEuro(amount: number) {
   return new Intl.NumberFormat('et-EE', { style: 'currency', currency: 'EUR' }).format(amount)
@@ -81,6 +97,13 @@ export default function BookingsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [actionError, setActionError] = useState('')
   const [detailModal, setDetailModal] = useState<Booking | null>(null)
+  const [priceModal, setPriceModal] = useState<Booking | null>(null)
+  const [priceInput, setPriceInput] = useState('')
+  const [priceError, setPriceError] = useState('')
+  const [savingPrice, setSavingPrice] = useState(false)
+  const [clients, setClients] = useState<ClientUser[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
 
   const fetchBookings = async () => {
     try {
@@ -99,7 +122,13 @@ export default function BookingsPage() {
     }
   }
 
-  useEffect(() => { fetchBookings() }, [])
+  useEffect(() => {
+    fetchBookings()
+    fetch('/api/users', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => { if (d.users) setClients(d.users) })
+      .catch(() => {})
+  }, [])
 
   const filteredBookings = bookings.filter((b) =>
     statusFilter === 'all' ? true : b.status === statusFilter
@@ -151,6 +180,45 @@ export default function BookingsPage() {
       else alert('Failed to delete booking')
     } catch {
       alert('An error occurred')
+    }
+  }
+
+  const openPriceEdit = (booking: Booking) => {
+    setPriceModal(booking)
+    setPriceInput(String(booking.totalPrice))
+    setPriceError('')
+  }
+
+  const handlePriceSave = async () => {
+    if (!priceModal) return
+    const totalPrice = Number(priceInput)
+    if (!Number.isFinite(totalPrice) || totalPrice < 0) {
+      setPriceError('Enter a valid amount')
+      return
+    }
+
+    setSavingPrice(true)
+    setPriceError('')
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${priceModal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalPrice }),
+        credentials: 'include',
+      })
+
+      if (res.ok) {
+        setPriceModal(null)
+        fetchBookings()
+      } else {
+        const data = await res.json()
+        setPriceError(data.error || 'Failed to update price')
+      }
+    } catch {
+      setPriceError('An error occurred')
+    } finally {
+      setSavingPrice(false)
     }
   }
 
@@ -228,7 +296,7 @@ export default function BookingsPage() {
                     <tr
                       key={booking.id}
                       className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => setDetailModal(booking)}
+                      onClick={() => { setDetailModal(booking); setShowPassword(false); setCopiedPassword(false) }}
                     >
                       <td className="py-3 px-4">
                         <p className="font-medium text-sm">{booking.guestName}</p>
@@ -240,8 +308,17 @@ export default function BookingsPage() {
                         <span className="text-gray-400 mx-1">→</span>
                         <span>{formatDate(booking.checkOut)}</span>
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-medium">
-                        {booking.totalPrice > 0 ? formatEuro(booking.totalPrice) : '—'}
+                      <td className="py-3 px-4 text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>{booking.totalPrice > 0 ? formatEuro(booking.totalPrice) : '—'}</span>
+                          <button
+                            onClick={() => openPriceEdit(booking)}
+                            className="p-1 hover:bg-gray-100 rounded"
+                            title="Edit price"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-gray-400" />
+                          </button>
+                        </div>
                       </td>
                       <td className="py-3 px-4">{statusBadge(booking.status)}</td>
                       <td className="py-3 px-4 text-sm text-gray-500">
@@ -346,6 +423,20 @@ export default function BookingsPage() {
               {statusBadge(detailModal.status)}
             </div>
 
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Total price</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold">{formatEuro(detailModal.totalPrice)}</span>
+                <button
+                  onClick={() => openPriceEdit(detailModal)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Edit price"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-gray-400" />
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-start gap-2">
                 <User className="h-4 w-4 text-gray-400 mt-0.5" />
@@ -380,6 +471,60 @@ export default function BookingsPage() {
                 <span>{detailModal.apartment?.name}</span>
               </div>
             </div>
+
+            {/* Client login info */}
+            {(() => {
+              const account = clients.find((c) => c.email === detailModal.guestEmail)
+              if (!account) return null
+              return (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-2 bg-gray-50 border-b flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Client login</span>
+                    {account.generatedPassword && (
+                      <a
+                        href={loginInfoMailto(account, detailModal.guestName)}
+                        className="text-xs text-red-500 hover:underline flex items-center gap-1"
+                      >
+                        <Send className="h-3 w-3" /> Email login info
+                      </a>
+                    )}
+                  </div>
+                  <div className="px-3 py-2 text-xs space-y-1.5">
+                    <div className="text-gray-600">Email: {account.email}</div>
+                    {account.generatedPassword ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-600">Password:</span>
+                        <span className="font-mono text-gray-800 select-all">
+                          {showPassword ? account.generatedPassword : '••••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="p-1 text-gray-400 hover:text-gray-600"
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(account.generatedPassword!)
+                            setCopiedPassword(true)
+                            setTimeout(() => setCopiedPassword(false), 2000)
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-600"
+                          title="Copy password"
+                        >
+                          {copiedPassword ? <CheckIcon className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-400">Password already changed by the client.</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Visitor list */}
             {detailModal.visitors && detailModal.visitors.length > 0 && (
@@ -464,6 +609,47 @@ export default function BookingsPage() {
                 </Button>
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit price modal */}
+      <Modal
+        isOpen={!!priceModal}
+        onClose={() => setPriceModal(null)}
+        title="Edit Price"
+      >
+        {priceModal && (
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-lg text-sm space-y-1">
+              <p><span className="text-gray-500">Guest:</span> <strong>{priceModal.guestName}</strong></p>
+              <p><span className="text-gray-500">Dates:</span> {formatDate(priceModal.checkIn)} → {formatDate(priceModal.checkOut)}</p>
+            </div>
+
+            <Input
+              id="totalPrice"
+              type="number"
+              label="Total price (€)"
+              min={0}
+              step="0.01"
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+              autoFocus
+            />
+            <p className="text-xs text-gray-500 -mt-2">
+              Overrides the calculated total. The per-night breakdown won&apos;t be shown for this booking anymore.
+            </p>
+
+            {priceError && <Alert variant="error">{priceError}</Alert>}
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setPriceModal(null)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handlePriceSave} loading={savingPrice} className="flex-1">
+                Save Price
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin, hashPassword } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
+import { ensureClientAccount } from '@/lib/booking'
 import { z } from 'zod'
 
-function generatePassword(): string {
-  // Avoids visually ambiguous characters (0/O, 1/l/I)
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  const bytes = randomBytes(12)
-  return Array.from(bytes).map((b) => chars[b % chars.length]).join('')
-}
-
 const updateBookingSchema = z.object({
-  status: z.enum(['CONFIRMED', 'REJECTED']),
+  status: z.enum(['CONFIRMED', 'REJECTED']).optional(),
   adminNotes: z.string().optional().nullable(),
+  totalPrice: z.number().min(0).optional(),
 })
 
 export async function PUT(
@@ -38,32 +32,24 @@ export async function PUT(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
 
+    // A manually-edited total no longer matches the per-night breakdown it was
+    // calculated from, so drop the breakdown rather than show stale numbers.
     const updated = await prisma.booking.update({
       where: { id },
       data: {
-        status: result.data.status,
-        adminNotes: result.data.adminNotes ?? null,
+        ...(result.data.status && { status: result.data.status }),
+        ...(result.data.adminNotes !== undefined && { adminNotes: result.data.adminNotes ?? null }),
+        ...(result.data.totalPrice !== undefined && {
+          totalPrice: result.data.totalPrice,
+          priceBreakdown: null,
+        }),
       },
       include: { apartment: true },
     })
 
     // Auto-create a CLIENT account when a booking is confirmed
     if (result.data.status === 'CONFIRMED') {
-      const existing = await prisma.user.findUnique({ where: { email: booking.guestEmail } })
-      if (!existing) {
-        const plain = generatePassword()
-        const hashed = await hashPassword(plain)
-        await prisma.user.create({
-          data: {
-            email: booking.guestEmail,
-            name: booking.guestName,
-            phone: booking.guestPhone ?? undefined,
-            password: hashed,
-            generatedPassword: plain,
-            role: 'CLIENT',
-          },
-        })
-      }
+      await ensureClientAccount(booking.guestEmail, booking.guestName, booking.guestPhone)
     }
 
     return NextResponse.json({

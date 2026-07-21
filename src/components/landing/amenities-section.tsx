@@ -7,8 +7,6 @@ import {
   Utensils,
   WashingMachine,
   Snowflake,
-  Waves,
-  Mountain,
 } from 'lucide-react'
 
 const defaultAmenities = [
@@ -18,7 +16,7 @@ const defaultAmenities = [
   { icon: Wind, name: 'Air Conditioning' },
   { icon: Coffee, name: 'Coffee Machine' },
   { icon: Utensils, name: 'Fully Equipped Kitchen' },
-  { icon: WashingMachine, name: 'Washer/Dryer' },
+  { icon: WashingMachine, name: 'Washer / Dryer' },
   { icon: Snowflake, name: 'Heating' },
 ]
 
@@ -30,22 +28,26 @@ export function AmenitiesSection({ amenities }: AmenitiesSectionProps) {
   const displayAmenities = amenities || defaultAmenities
 
   return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Amenities</h2>
+    <section className="py-24 bg-white">
+      <div className="container mx-auto px-6">
+        <div className="text-center mb-16">
+          <p className="text-xs tracking-widest uppercase text-sky-600 mb-3">What we offer</p>
+          <h2 className="font-serif-display text-4xl md:text-5xl font-light text-stone-800 tracking-wide">
+            Amenities
+          </h2>
+          <div className="w-8 h-px bg-stone-300 mx-auto mt-5" />
+        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-stone-100 max-w-4xl mx-auto border border-stone-100">
           {displayAmenities.map((amenity, index) => {
-            const Icon = typeof amenity.icon === 'string'
-              ? Wifi
-              : amenity.icon
+            const Icon = typeof amenity.icon === 'string' ? Wifi : amenity.icon
             return (
               <div
                 key={index}
-                className="flex flex-col items-center text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="flex flex-col items-center text-center p-8 bg-white hover:bg-sky-50 transition-colors group"
               >
-                <Icon className="h-8 w-8 text-red-500 mb-2" />
-                <span className="text-sm font-medium text-gray-700">
+                <Icon className="h-6 w-6 text-sky-600 mb-3 group-hover:scale-110 transition-transform" />
+                <span className="text-xs tracking-wider uppercase text-stone-500 leading-relaxed">
                   {amenity.name}
                 </span>
               </div>

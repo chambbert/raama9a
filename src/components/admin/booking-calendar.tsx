@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { Booking } from '@/types'
+import { Plus } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Alert } from '@/components/ui/alert'
+import type { Booking, Apartment } from '@/types'
 
 interface Visit {
   id: string
@@ -9,6 +16,32 @@ interface Visit {
   checkOut: string
   apartment: { name: string }
   user: { name: string; email: string; phone?: string | null }
+}
+
+type NewBookingForm = {
+  apartmentId: string
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  checkIn: string
+  checkOut: string
+  adults: number
+  notes: string
+}
+
+function emptyForm(apartments: Apartment[], checkIn?: string): NewBookingForm {
+  const ci = checkIn ?? toDs(new Date())
+  const co = toDs(new Date(new Date(ci + 'T00:00:00').getTime() + 24 * 60 * 60 * 1000))
+  return {
+    apartmentId: apartments[0]?.id ?? '',
+    guestName: '',
+    guestEmail: '',
+    guestPhone: '',
+    checkIn: ci,
+    checkOut: co,
+    adults: 1,
+    notes: '',
+  }
 }
 
 type CalendarEvent =
@@ -53,6 +86,7 @@ const DAY_HEADERS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 export function BookingCalendarWidget() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [visits, setVisits] = useState<Visit[]>([])
+  const [apartments, setApartments] = useState<Apartment[]>([])
   const [loading, setLoading] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(() => {
     const n = new Date()
@@ -62,8 +96,13 @@ export function BookingCalendarWidget() {
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
   const tooltipRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    Promise.all([
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
+  const [bookingForm, setBookingForm] = useState<NewBookingForm>(emptyForm([]))
+  const [bookingError, setBookingError] = useState('')
+  const [submittingBooking, setSubmittingBooking] = useState(false)
+
+  const loadEvents = () => {
+    return Promise.all([
       fetch('/api/admin/bookings', { credentials: 'include' }).then((r) => r.json()),
       fetch('/api/visits', { credentials: 'include' }).then((r) => r.json()),
     ])
@@ -75,7 +114,53 @@ export function BookingCalendarWidget() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadEvents()
+    fetch('/api/apartments', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => { if (d.apartments) setApartments(d.apartments) })
+      .catch(() => {})
   }, [])
+
+  const openNewBooking = (checkIn?: string) => {
+    setBookingForm(emptyForm(apartments, checkIn))
+    setBookingError('')
+    setIsBookingModalOpen(true)
+  }
+
+  const handleCreateBooking = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmittingBooking(true)
+    setBookingError('')
+
+    try {
+      const res = await fetch('/api/admin/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...bookingForm,
+          guestPhone: bookingForm.guestPhone || null,
+          notes: bookingForm.notes || null,
+          visitors: [],
+        }),
+      })
+
+      if (res.ok) {
+        setIsBookingModalOpen(false)
+        loadEvents()
+      } else {
+        const data = await res.json()
+        setBookingError(data.error || 'Failed to create booking')
+      }
+    } catch {
+      setBookingError('An error occurred')
+    } finally {
+      setSubmittingBooking(false)
+    }
+  }
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -127,6 +212,15 @@ export function BookingCalendarWidget() {
         <h3 className="font-semibold text-gray-800">{monthLabel}</h3>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => openNewBooking()}
+            disabled={!apartments.length}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 text-gray-600 text-xs font-medium disabled:opacity-40 mr-1"
+            title="Book a stay directly (e.g. for yourself or family)"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New booking
+          </button>
+          <button
             onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 text-lg leading-none"
           >
@@ -173,10 +267,12 @@ export function BookingCalendarWidget() {
               return (
                 <div
                   key={idx}
-                  className={`bg-white min-h-[60px] p-1 ${evs.length ? 'cursor-default' : ''}`}
+                  className={`bg-white min-h-[60px] p-1 ${evs.length || !apartments.length ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'}`}
                   onMouseEnter={evs.length ? (e) => handleCellEnter(date, e) : undefined}
                   onMouseMove={evs.length ? handleCellMove : undefined}
                   onMouseLeave={evs.length ? handleCellLeave : undefined}
+                  onClick={evs.length || !apartments.length ? undefined : () => openNewBooking(ds)}
+                  title={evs.length || !apartments.length ? undefined : 'Book this date'}
                 >
                   <span
                     className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full mx-auto ${
@@ -281,6 +377,111 @@ export function BookingCalendarWidget() {
           ))}
         </div>
       )}
+
+      {/* New booking modal */}
+      <Modal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        title="New Booking"
+      >
+        <form onSubmit={handleCreateBooking} className="space-y-4">
+          <p className="text-xs text-gray-500 -mt-2">
+            Blocks these dates immediately — no guest request or approval step. Use this for
+            your own stays or family/friends.
+          </p>
+
+          {bookingError && <Alert variant="error">{bookingError}</Alert>}
+
+          {apartments.length > 1 && (
+            <Select
+              id="apartmentId"
+              label="Apartment"
+              value={bookingForm.apartmentId}
+              onChange={(e) => setBookingForm({ ...bookingForm, apartmentId: e.target.value })}
+              options={apartments.map((a) => ({ value: a.id, label: a.name }))}
+              required
+            />
+          )}
+
+          <Input
+            id="guestName"
+            label="Guest name"
+            value={bookingForm.guestName}
+            onChange={(e) => setBookingForm({ ...bookingForm, guestName: e.target.value })}
+            placeholder="e.g. Kaspar / Family"
+            required
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="guestEmail"
+              type="email"
+              label="Email"
+              value={bookingForm.guestEmail}
+              onChange={(e) => setBookingForm({ ...bookingForm, guestEmail: e.target.value })}
+              required
+            />
+            <Input
+              id="guestPhone"
+              type="tel"
+              label="Phone (optional)"
+              value={bookingForm.guestPhone}
+              onChange={(e) => setBookingForm({ ...bookingForm, guestPhone: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="checkIn"
+              type="date"
+              label="Check-in"
+              value={bookingForm.checkIn}
+              onChange={(e) => setBookingForm({ ...bookingForm, checkIn: e.target.value })}
+              required
+            />
+            <Input
+              id="checkOut"
+              type="date"
+              label="Check-out"
+              value={bookingForm.checkOut}
+              onChange={(e) => setBookingForm({ ...bookingForm, checkOut: e.target.value })}
+              required
+            />
+          </div>
+
+          <Input
+            id="adults"
+            type="number"
+            label="Adults"
+            min={1}
+            max={4}
+            value={bookingForm.adults}
+            onChange={(e) => setBookingForm({ ...bookingForm, adults: Number(e.target.value) || 1 })}
+          />
+
+          <Textarea
+            id="bookingNotes"
+            label="Notes (optional)"
+            value={bookingForm.notes}
+            onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
+            rows={2}
+          />
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsBookingModalOpen(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={submittingBooking} className="flex-1">
+              Create Booking
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

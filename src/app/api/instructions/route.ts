@@ -5,6 +5,27 @@ import { instructionSchema } from '@/lib/validation'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
+async function saveUploadedFile(file: File): Promise<string> {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+  if (file.size > 5 * 1024 * 1024) throw new Error('File size must be less than 5MB')
+
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+  await mkdir(uploadsDir, { recursive: true })
+
+  const mimeToExt: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+  }
+  const ext = mimeToExt[file.type] ?? '.jpg'
+  const filename = `instruction-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+  const bytes = await file.arrayBuffer()
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes))
+  return `/uploads/${filename}`
+}
+
 export async function GET() {
   try {
     await requireAuth()
@@ -13,11 +34,8 @@ export async function GET() {
       orderBy: [{ category: 'asc' }, { order: 'asc' }],
     })
 
-    // Group by category
     const grouped = instructions.reduce((acc, instruction) => {
-      if (!acc[instruction.category]) {
-        acc[instruction.category] = []
-      }
+      if (!acc[instruction.category]) acc[instruction.category] = []
       acc[instruction.category].push(instruction)
       return acc
     }, {} as Record<string, typeof instructions>)
@@ -45,42 +63,28 @@ export async function POST(request: NextRequest) {
       const title = formData.get('title') as string
       const content = formData.get('content') as string
       const order = parseInt(formData.get('order') as string) || 0
+      const isTutorial = formData.get('isTutorial') === 'true'
+      const tutorialOrder = parseInt(formData.get('tutorialOrder') as string) || 0
+      const tutorialImageFiles = formData.getAll('tutorialImages') as File[]
 
       let imageUrl: string | null = null
-
       if (file && file.size > 0) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        if (!allowedTypes.includes(file.type)) {
-          return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
-            { status: 400 }
-          )
+        try {
+          imageUrl = await saveUploadedFile(file)
+        } catch (e) {
+          return NextResponse.json({ error: (e as Error).message }, { status: 400 })
         }
+      }
 
-        if (file.size > 5 * 1024 * 1024) {
-          return NextResponse.json(
-            { error: 'File size must be less than 5MB' },
-            { status: 400 }
-          )
+      const uploadedTutorialUrls: string[] = []
+      for (const f of tutorialImageFiles) {
+        if (f && f.size > 0) {
+          try {
+            uploadedTutorialUrls.push(await saveUploadedFile(f))
+          } catch (e) {
+            return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+          }
         }
-
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadsDir, { recursive: true })
-
-        const mimeToExt: Record<string, string> = {
-          'image/jpeg': '.jpg',
-          'image/png': '.png',
-          'image/webp': '.webp',
-          'image/gif': '.gif',
-        }
-        const ext = mimeToExt[file.type] ?? '.jpg'
-        const filename = `instruction-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const filepath = path.join(uploadsDir, filename)
-
-        const bytes = await file.arrayBuffer()
-        await writeFile(filepath, Buffer.from(bytes))
-
-        imageUrl = `/uploads/${filename}`
       }
 
       const validationResult = instructionSchema.safeParse({
@@ -88,36 +92,27 @@ export async function POST(request: NextRequest) {
         title,
         content,
         imageUrl,
+        imageUrls: uploadedTutorialUrls.length > 0 ? JSON.stringify(uploadedTutorialUrls) : null,
         order,
+        isTutorial,
+        tutorialOrder,
       })
 
       if (!validationResult.success) {
-        return NextResponse.json(
-          { error: validationResult.error.errors[0].message },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: validationResult.error.errors[0].message }, { status: 400 })
       }
 
-      const instruction = await prisma.instruction.create({
-        data: validationResult.data,
-      })
-
+      const instruction = await prisma.instruction.create({ data: validationResult.data })
       return NextResponse.json({ instruction }, { status: 201 })
     } else {
       const body = await request.json()
       const validationResult = instructionSchema.safeParse(body)
 
       if (!validationResult.success) {
-        return NextResponse.json(
-          { error: validationResult.error.errors[0].message },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: validationResult.error.errors[0].message }, { status: 400 })
       }
 
-      const instruction = await prisma.instruction.create({
-        data: validationResult.data,
-      })
-
+      const instruction = await prisma.instruction.create({ data: validationResult.data })
       return NextResponse.json({ instruction }, { status: 201 })
     }
   } catch (error) {
