@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
 import { reviewSchema } from '@/lib/validation'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
+
+async function saveUploadedFile(file: File): Promise<string> {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+  if (file.size > 5 * 1024 * 1024) throw new Error('File size must be less than 5MB')
+
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+  await mkdir(uploadsDir, { recursive: true })
+
+  const mimeToExt: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+  }
+  const ext = mimeToExt[file.type] ?? '.jpg'
+  const filename = `review-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+  const bytes = await file.arrayBuffer()
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes))
+  return `/uploads/${filename}`
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +59,32 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser()
-    const body = await request.json()
+
+    const contentType = request.headers.get('content-type') || ''
+    let body: { name: string; rating: number; comment: string; imageUrl?: string | null }
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      const file = formData.get('file') as File | null
+
+      let imageUrl: string | null = null
+      if (file && file.size > 0) {
+        try {
+          imageUrl = await saveUploadedFile(file)
+        } catch (e) {
+          return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+        }
+      }
+
+      body = {
+        name: formData.get('name') as string,
+        rating: parseInt(formData.get('rating') as string),
+        comment: formData.get('comment') as string,
+        imageUrl,
+      }
+    } else {
+      body = await request.json()
+    }
 
     const validationResult = reviewSchema.safeParse(body)
     if (!validationResult.success) {
@@ -46,7 +94,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, rating, comment } = validationResult.data
+    const { name, rating, comment, imageUrl } = validationResult.data
     const isAdmin = user?.role === 'ADMIN'
 
     const review = await prisma.review.create({
@@ -54,6 +102,7 @@ export async function POST(request: NextRequest) {
         name,
         rating,
         comment,
+        imageUrl: imageUrl || null,
         userId: user?.id || null,
         approved: isAdmin, // Admin-created reviews are auto-approved
       },

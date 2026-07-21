@@ -152,6 +152,7 @@ export interface Review {
   name: string
   rating: number
   comment: string
+  imageUrl: string | null
   approved: boolean
   createdAt: Date
   user?: User | null

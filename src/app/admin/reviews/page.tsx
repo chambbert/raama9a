@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -257,6 +258,11 @@ export default function ReviewsPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                {review.imageUrl && (
+                  <div className="relative w-40 h-28 mb-3">
+                    <Image src={review.imageUrl} alt="" fill className="object-cover rounded-md" />
+                  </div>
+                )}
                 <p className="text-gray-600">{review.comment}</p>
               </CardContent>
             </Card>

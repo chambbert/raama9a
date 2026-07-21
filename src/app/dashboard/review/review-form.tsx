@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/components/providers/auth-provider'
 import { Alert } from '@/components/ui/alert'
-import { Star, CheckCircle, Calendar } from 'lucide-react'
+import { Star, CheckCircle, Calendar, ImagePlus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 
 interface Visit {
   id: string
@@ -39,9 +43,38 @@ export function ReviewForm({ visits }: ReviewFormProps) {
   const [hoveredRating, setHoveredRating] = useState(0)
   const [name, setName] = useState(user?.name || '')
   const [comment, setComment] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+      return
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      setError('File size must be less than 5MB')
+      return
+    }
+
+    setError('')
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,10 +83,15 @@ export function ReviewForm({ visits }: ReviewFormProps) {
     if (comment.length < 10) { setError('Please write at least 10 characters'); return }
     setLoading(true)
     try {
+      const body = new FormData()
+      body.append('name', name)
+      body.append('rating', rating.toString())
+      body.append('comment', comment)
+      if (imageFile) body.append('file', imageFile)
+
       const res = await fetch('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, rating, comment }),
+        body,
       })
       if (res.ok) {
         setSubmitted(true)
@@ -177,6 +215,41 @@ export function ReviewForm({ visits }: ReviewFormProps) {
               rows={5}
               placeholder="Tell us about your experience..."
               className="w-full border-0 border-b border-stone-200 focus:border-sky-600 focus:outline-none py-2 text-sm text-stone-800 placeholder:text-stone-300 bg-transparent transition-colors resize-none"
+            />
+          </div>
+
+          {/* Photo */}
+          <div>
+            <label className="block text-xs tracking-widest uppercase text-stone-400 mb-2">
+              Add a Photo (Optional)
+            </label>
+            {imagePreview ? (
+              <div className="relative w-32 h-32">
+                <Image src={imagePreview} alt="" fill className="object-cover" />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 bg-stone-900 text-white rounded-full p-1"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 text-xs tracking-wider uppercase text-stone-500 border border-dashed border-stone-300 px-4 py-3 hover:border-sky-600 hover:text-sky-600 transition-colors"
+              >
+                <ImagePlus className="h-4 w-4" />
+                Upload Photo
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleFileChange}
+              className="hidden"
             />
           </div>
 

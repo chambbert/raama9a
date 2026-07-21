@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Star } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import type { Review } from '@/types'
@@ -28,6 +29,11 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
               key={review.id}
               className="bg-white border border-stone-100 p-8 flex flex-col"
             >
+              {review.imageUrl && (
+                <div className="relative w-full h-40 mb-5 -mt-2">
+                  <Image src={review.imageUrl} alt={`Photo from ${review.name}`} fill className="object-cover" />
+                </div>
+              )}
               <div className="flex items-center gap-0.5 mb-5">
                 {[...Array(5)].map((_, i) => (
                   <Star

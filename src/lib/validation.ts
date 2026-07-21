@@ -95,6 +95,7 @@ export const reviewSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   rating: z.number().min(1).max(5),
   comment: z.string().min(10, 'Comment must be at least 10 characters'),
+  imageUrl: z.string().optional().nullable(),
 })
 
 export const updateReviewSchema = z.object({
@@ -102,6 +103,7 @@ export const updateReviewSchema = z.object({
   name: z.string().min(1).optional(),
   rating: z.number().min(1).max(5).optional(),
   comment: z.string().min(10).optional(),
+  imageUrl: z.string().optional().nullable(),
 })
 
 // Hero Image schemas
