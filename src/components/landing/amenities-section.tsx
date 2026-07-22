@@ -16,7 +16,7 @@ const defaultAmenities = [
   { icon: Wind, name: 'Air Conditioning' },
   { icon: Coffee, name: 'Coffee Machine' },
   { icon: Utensils, name: 'Fully Equipped Kitchen' },
-  { icon: WashingMachine, name: 'Washer / Dryer' },
+  { icon: WashingMachine, name: 'Washer' },
   { icon: Snowflake, name: 'Heating' },
 ]
 
