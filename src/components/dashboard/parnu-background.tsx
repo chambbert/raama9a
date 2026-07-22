@@ -23,6 +23,11 @@ export function ParnuBackground() {
             <stop offset="0%"   stopColor="rgb(125,211,252)" stopOpacity="0.45"/>
             <stop offset="100%" stopColor="rgb(14,165,233)"  stopOpacity="0.55"/>
           </linearGradient>
+          {/* Beach sand */}
+          <linearGradient id="db-sand" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="rgb(254,243,199)" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="rgb(252,211,77)"  stopOpacity="0.35"/>
+          </linearGradient>
           {/* Sea shimmer overlay */}
           <linearGradient id="db-shimmer" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%"   stopColor="white" stopOpacity="0"   />
@@ -101,21 +106,33 @@ export function ParnuBackground() {
           "
         />
 
-        {/* ── Sea / water body ── */}
+        {/* ── Beach sand between the town and the water ── */}
         <path
-          fill="url(#db-sea)"
+          fill="url(#db-sand)"
           d="M 0,284
              C 240,274 480,286 720,276
              C 960,266 1200,278 1440,270
+             L 1440,296
+             C 1200,303 960,292 720,300
+             C 480,308 240,298 0,306
+             Z"
+        />
+
+        {/* ── Sea / water body ── */}
+        <path
+          fill="url(#db-sea)"
+          d="M 0,306
+             C 240,298 480,308 720,300
+             C 960,292 1200,303 1440,296
              L 1440,380 L 0,380 Z"
         />
 
         {/* Sea shimmer */}
         <path
           fill="url(#db-shimmer)"
-          d="M 0,284
-             C 240,274 480,286 720,276
-             C 960,266 1200,278 1440,270
+          d="M 0,306
+             C 240,298 480,308 720,300
+             C 960,292 1200,303 1440,296
              L 1440,380 L 0,380 Z"
         />
 
@@ -125,7 +142,7 @@ export function ParnuBackground() {
           strokeOpacity="0.7"
           strokeWidth="1.5"
           fill="none"
-          d="M 0,294 Q 180,286 360,294 Q 540,302 720,294 Q 900,286 1080,294 Q 1260,302 1440,294"
+          d="M 0,316 Q 180,308 360,316 Q 540,324 720,316 Q 900,308 1080,316 Q 1260,324 1440,316"
         />
         {/* Wave line 2 */}
         <path
@@ -133,7 +150,7 @@ export function ParnuBackground() {
           strokeOpacity="0.45"
           strokeWidth="1"
           fill="none"
-          d="M 0,312 Q 150,306 300,312 Q 450,318 600,312 Q 750,306 900,312 Q 1050,318 1200,312 Q 1350,306 1440,312"
+          d="M 0,332 Q 150,326 300,332 Q 450,338 600,332 Q 750,326 900,332 Q 1050,338 1200,332 Q 1350,326 1440,332"
         />
         {/* Wave line 3 */}
         <path
@@ -141,12 +158,12 @@ export function ParnuBackground() {
           strokeOpacity="0.25"
           strokeWidth="1"
           fill="none"
-          d="M 0,334 Q 120,329 240,334 Q 360,339 480,334 Q 600,329 720,334 Q 840,339 960,334 Q 1080,329 1200,334 Q 1320,339 1440,334"
+          d="M 0,352 Q 120,347 240,352 Q 360,357 480,352 Q 600,347 720,352 Q 840,357 960,352 Q 1080,347 1200,352 Q 1320,357 1440,352"
         />
 
-        {/* Horizon line — thin glowing stripe where sky meets sea */}
+        {/* Shoreline — thin glowing stripe where sand meets sea */}
         <line
-          x1="0" y1="282" x2="1440" y2="276"
+          x1="0" y1="304" x2="1440" y2="298"
           stroke="rgb(186,230,253)"
           strokeOpacity="0.5"
           strokeWidth="1"
