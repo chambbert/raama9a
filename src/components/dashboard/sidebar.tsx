@@ -26,7 +26,7 @@ export function DashboardSidebar() {
   return (
     <>
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden lg:flex flex-col w-60 min-h-screen bg-stone-900 flex-shrink-0">
+      <aside className="relative z-10 hidden lg:flex flex-col w-60 min-h-screen bg-stone-900 flex-shrink-0">
         {/* Logo */}
         <div className="px-8 py-8 border-b border-stone-800">
           <Link href="/">
