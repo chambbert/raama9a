@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
-import { heroImageSchema } from '@/lib/validation'
+import { galleryPhotoSchema } from '@/lib/validation'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 export async function GET() {
   try {
-    const heroImages = await prisma.heroImage.findMany({
+    const galleryPhotos = await prisma.galleryPhoto.findMany({
       where: { active: true },
       orderBy: { order: 'asc' },
     })
 
-    return NextResponse.json({ heroImages })
+    return NextResponse.json({ galleryPhotos })
   } catch (error) {
-    console.error('Get hero images error:', error)
+    console.error('Get gallery photos error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }
@@ -29,29 +29,26 @@ export async function POST(request: NextRequest) {
       // Handle file upload
       const formData = await request.formData()
       const file = formData.get('file') as File | null
-      const title = formData.get('title') as string | null
+      const caption = formData.get('caption') as string | null
       const order = parseInt(formData.get('order') as string) || 0
 
       if (!file) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
       }
 
-      const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-      const videoTypes = ['video/mp4', 'video/webm', 'video/quicktime']
-      const mediaType = videoTypes.includes(file.type) ? 'VIDEO' : imageTypes.includes(file.type) ? 'IMAGE' : null
-
-      if (!mediaType) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+      if (!allowedTypes.includes(file.type)) {
         return NextResponse.json(
-          { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV' },
+          { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
           { status: 400 }
         )
       }
 
-      // Validate file size (5MB for images, 50MB for video)
-      const maxSize = mediaType === 'VIDEO' ? 50 * 1024 * 1024 : 5 * 1024 * 1024
-      if (file.size > maxSize) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
         return NextResponse.json(
-          { error: `File size must be less than ${mediaType === 'VIDEO' ? '50MB' : '5MB'}` },
+          { error: 'File size must be less than 5MB' },
           { status: 400 }
         )
       }
@@ -66,12 +63,9 @@ export async function POST(request: NextRequest) {
         'image/png': '.png',
         'image/webp': '.webp',
         'image/gif': '.gif',
-        'video/mp4': '.mp4',
-        'video/webm': '.webm',
-        'video/quicktime': '.mov',
       }
       const ext = mimeToExt[file.type] ?? '.jpg'
-      const filename = `hero-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
+      const filename = `gallery-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
       const filepath = path.join(uploadsDir, filename)
 
       // Write file
@@ -79,21 +73,20 @@ export async function POST(request: NextRequest) {
       await writeFile(filepath, Buffer.from(bytes))
 
       // Save to database
-      const heroImage = await prisma.heroImage.create({
+      const galleryPhoto = await prisma.galleryPhoto.create({
         data: {
-          mediaUrl: `/uploads/${filename}`,
-          mediaType,
-          title: title || null,
+          imageUrl: `/uploads/${filename}`,
+          caption: caption || null,
           order,
           active: true,
         },
       })
 
-      return NextResponse.json({ heroImage }, { status: 201 })
+      return NextResponse.json({ galleryPhoto }, { status: 201 })
     } else {
       // Handle JSON request (for URL-based images)
       const body = await request.json()
-      const validationResult = heroImageSchema.safeParse(body)
+      const validationResult = galleryPhotoSchema.safeParse(body)
 
       if (!validationResult.success) {
         return NextResponse.json(
@@ -102,11 +95,11 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const heroImage = await prisma.heroImage.create({
+      const galleryPhoto = await prisma.galleryPhoto.create({
         data: validationResult.data,
       })
 
-      return NextResponse.json({ heroImage }, { status: 201 })
+      return NextResponse.json({ galleryPhoto }, { status: 201 })
     }
   } catch (error) {
     if (error instanceof Error && error.message === 'Forbidden') {
@@ -115,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Create hero image error:', error)
+    console.error('Create gallery photo error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }

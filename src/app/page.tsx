@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+import type { HeroImage } from '@/types'
 import { prisma } from '@/lib/prisma'
 import { Navbar } from '@/components/landing/navbar'
 import { HeroCarousel } from '@/components/landing/hero-carousel'
 import { AmenitiesSection } from '@/components/landing/amenities-section'
+import { GallerySection } from '@/components/landing/gallery-section'
 import { BookingSection } from '@/components/landing/booking-section'
 import { LocationSection } from '@/components/landing/location-section'
 import { ContactSection } from '@/components/landing/contact-section'
@@ -60,8 +62,12 @@ const jsonLd = {
 }
 
 async function getPageData() {
-  const [heroImages, reviews, settings, sections, apartments] = await Promise.all([
+  const [heroImages, galleryPhotos, reviews, settings, sections, apartments] = await Promise.all([
     prisma.heroImage.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
+    }),
+    prisma.galleryPhoto.findMany({
       where: { active: true },
       orderBy: { order: 'asc' },
     }),
@@ -81,11 +87,11 @@ async function getPageData() {
     }),
   ])
 
-  return { heroImages, reviews, settings, sections, apartments }
+  return { heroImages, galleryPhotos, reviews, settings, sections, apartments }
 }
 
 export default async function HomePage() {
-  const { heroImages, reviews, settings, sections, apartments } = await getPageData()
+  const { heroImages, galleryPhotos, reviews, settings, sections, apartments } = await getPageData()
 
   return (
     <main className="min-h-screen">
@@ -97,7 +103,7 @@ export default async function HomePage() {
       <Navbar />
 
       <HeroCarousel
-        images={heroImages}
+        images={heroImages as HeroImage[]}
         siteName={settings?.siteName || 'Rääma 9a – Riverside Apartment Pärnu'}
       />
 
@@ -107,6 +113,10 @@ export default async function HomePage() {
 
       <div id="amenities">
         <AmenitiesSection />
+      </div>
+
+      <div id="gallery">
+        <GallerySection photos={galleryPhotos} />
       </div>
 
       <div id="location">

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, Image, Book, MapPin, Star, Settings,
+  LayoutDashboard, Users, Image, Images, Book, MapPin, Star, Settings,
   Building, Calendar, Key, Menu, X, LogOut, User,
   ClipboardList, AlertTriangle, BookOpen,
 } from 'lucide-react'
@@ -43,6 +43,7 @@ const navGroups: NavGroup[] = [
     label: 'Content',
     items: [
       { href: '/admin/hero-images', label: 'Hero Images', icon: Image },
+      { href: '/admin/gallery-photos', label: 'Gallery Photos', icon: Images },
       { href: '/admin/instructions', label: 'Instructions', icon: Book },
       { href: '/admin/sightseeing', label: 'Sightseeing', icon: MapPin },
     ],

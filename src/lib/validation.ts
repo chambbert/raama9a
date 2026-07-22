@@ -52,10 +52,13 @@ export const visitSchema = z.object({
 })
 
 // Cleaning task schemas
+export const CLEANING_TASK_FREQUENCIES = ['EVERY_VISIT', 'WEEKLY', 'MONTHLY', 'QUARTERLY'] as const
+
 export const cleaningTaskSchema = z.object({
   apartmentId: z.string().min(1, 'Apartment ID is required'),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().nullable(),
+  frequency: z.enum(CLEANING_TASK_FREQUENCIES).default('EVERY_VISIT'),
   order: z.number().default(0),
 })
 
@@ -108,8 +111,16 @@ export const updateReviewSchema = z.object({
 
 // Hero Image schemas
 export const heroImageSchema = z.object({
-  imageUrl: z.string().min(1, 'Image URL is required'),
+  mediaUrl: z.string().min(1, 'Media URL is required'),
+  mediaType: z.enum(['IMAGE', 'VIDEO']).default('IMAGE'),
   title: z.string().optional(),
+  order: z.number().default(0),
+  active: z.boolean().default(true),
+})
+
+export const galleryPhotoSchema = z.object({
+  imageUrl: z.string().min(1, 'Image URL is required'),
+  caption: z.string().optional(),
   order: z.number().default(0),
   active: z.boolean().default(true),
 })

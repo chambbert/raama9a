@@ -27,8 +27,11 @@ function isSameDay(a: Date, b: Date): boolean {
     && a.getDate() === b.getDate()
 }
 
+// d is a local-midnight Date representing a picked calendar day — read its
+// local Y/M/D components, not toISOString(), which converts to UTC and
+// shifts the date back a day in timezones ahead of UTC (e.g. Estonia).
 function toDateString(d: Date): string {
-  return d.toISOString().split('T')[0]
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
 type BreakdownGroup = { startDate: string; endDate: string; nights: number; pricePerNight: number; subtotal: number }

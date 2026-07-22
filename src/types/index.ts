@@ -87,12 +87,15 @@ export interface Visit {
   cleaner?: User | null
 }
 
+export type CleaningTaskFrequency = 'EVERY_VISIT' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+
 export interface CleaningTask {
   id: string
   apartmentId: string
   apartment?: Apartment
   title: string
   description: string | null
+  frequency: CleaningTaskFrequency
   order: number
   createdAt: Date
 }
@@ -160,8 +163,17 @@ export interface Review {
 
 export interface HeroImage {
   id: string
-  imageUrl: string
+  mediaUrl: string
+  mediaType: 'IMAGE' | 'VIDEO'
   title: string | null
+  order: number
+  active: boolean
+}
+
+export interface GalleryPhoto {
+  id: string
+  imageUrl: string
+  caption: string | null
   order: number
   active: boolean
 }

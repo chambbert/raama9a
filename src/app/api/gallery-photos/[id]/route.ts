@@ -13,18 +13,18 @@ export async function PUT(
     const { id } = await params
 
     const body = await request.json()
-    const { title, order, active } = body
+    const { caption, order, active } = body
 
-    const heroImage = await prisma.heroImage.update({
+    const galleryPhoto = await prisma.galleryPhoto.update({
       where: { id },
       data: {
-        ...(title !== undefined && { title }),
+        ...(caption !== undefined && { caption }),
         ...(order !== undefined && { order }),
         ...(active !== undefined && { active }),
       },
     })
 
-    return NextResponse.json({ heroImage })
+    return NextResponse.json({ galleryPhoto })
   } catch (error) {
     if (error instanceof Error && error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -32,7 +32,7 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Update hero image error:', error)
+    console.error('Update gallery photo error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }
@@ -45,15 +45,15 @@ export async function DELETE(
     await requireAdmin()
     const { id } = await params
 
-    const heroImage = await prisma.heroImage.findUnique({ where: { id } })
+    const galleryPhoto = await prisma.galleryPhoto.findUnique({ where: { id } })
 
-    if (!heroImage) {
-      return NextResponse.json({ error: 'Image not found' }, { status: 404 })
+    if (!galleryPhoto) {
+      return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
     }
 
     // Delete file if it's a local upload
-    if (heroImage.mediaUrl.startsWith('/uploads/')) {
-      const filepath = path.join(process.cwd(), 'public', heroImage.mediaUrl)
+    if (galleryPhoto.imageUrl.startsWith('/uploads/')) {
+      const filepath = path.join(process.cwd(), 'public', galleryPhoto.imageUrl)
       try {
         await unlink(filepath)
       } catch {
@@ -61,7 +61,7 @@ export async function DELETE(
       }
     }
 
-    await prisma.heroImage.delete({ where: { id } })
+    await prisma.galleryPhoto.delete({ where: { id } })
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -71,7 +71,7 @@ export async function DELETE(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Delete hero image error:', error)
+    console.error('Delete gallery photo error:', error)
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }

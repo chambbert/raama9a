@@ -139,8 +139,19 @@ model Review {
 
 model HeroImage {
   id        String   @id @default(cuid())
-  imageUrl  String
+  mediaUrl  String
+  mediaType String   @default("IMAGE") // 'IMAGE' | 'VIDEO'
   title     String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GalleryPhoto {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String?
   order     Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -173,6 +184,7 @@ model CleaningTask {
   apartment   Apartment     @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
   title       String
   description String?
+  frequency   String        @default("EVERY_VISIT") // 'EVERY_VISIT' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
   order       Int           @default(0)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

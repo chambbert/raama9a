@@ -49,13 +49,24 @@ export function HeroCarousel({ images, siteName }: HeroCarouselProps) {
             index === currentIndex ? 'opacity-100' : 'opacity-0'
           )}
         >
-          <Image
-            src={image.imageUrl}
-            alt={image.title || 'Rääma 9a – Riverside Apartment Pärnu'}
-            fill
-            className="object-cover"
-            priority={index === 0}
-          />
+          {image.mediaType === 'VIDEO' ? (
+            <video
+              src={image.mediaUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <Image
+              src={image.mediaUrl}
+              alt={image.title || 'Rääma 9a – Riverside Apartment Pärnu'}
+              fill
+              className="object-cover"
+              priority={index === 0}
+            />
+          )}
           <div className="absolute inset-0 bg-black/25" />
         </div>
       ))}

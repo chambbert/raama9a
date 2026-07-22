@@ -58,10 +58,11 @@ export async function POST(request: NextRequest) {
 
     const { apartmentId, guestName, guestEmail, guestPhone, checkIn, checkOut, adults, notes, visitors } = result.data
 
+    // checkIn/checkOut are plain YYYY-MM-DD strings, which Date already parses
+    // as UTC midnight — do not call setHours() here, it re-anchors to local
+    // midnight and shifts the stored date by a day on non-UTC servers.
     const checkInDate = new Date(checkIn)
     const checkOutDate = new Date(checkOut)
-    checkInDate.setHours(0, 0, 0, 0)
-    checkOutDate.setHours(0, 0, 0, 0)
 
     if (checkOutDate <= checkInDate) {
       return NextResponse.json(

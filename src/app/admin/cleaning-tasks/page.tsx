@@ -9,11 +9,20 @@ import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
 import { Plus, Edit, Trash2, ClipboardList, ChevronUp, ChevronDown } from 'lucide-react'
-import type { Apartment, CleaningTask } from '@/types'
+import type { Apartment, CleaningTask, CleaningTaskFrequency } from '@/types'
 
 type CleaningTaskWithApartment = CleaningTask & {
   apartment: Pick<Apartment, 'id' | 'name'>
 }
+
+const FREQUENCY_OPTIONS: { value: CleaningTaskFrequency; label: string }[] = [
+  { value: 'EVERY_VISIT', label: 'Every visit' },
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'QUARTERLY', label: 'Quarterly' },
+]
+
+const FREQUENCY_LABELS = Object.fromEntries(FREQUENCY_OPTIONS.map((o) => [o.value, o.label]))
 
 export default function CleaningTasksPage() {
   const [apartments, setApartments] = useState<Apartment[]>([])
@@ -23,9 +32,15 @@ export default function CleaningTasksPage() {
   const [error, setError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<CleaningTaskWithApartment | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string
+    description: string
+    frequency: CleaningTaskFrequency
+    order: number
+  }>({
     title: '',
     description: '',
+    frequency: 'EVERY_VISIT',
     order: 0,
   })
   const [formError, setFormError] = useState('')
@@ -97,7 +112,7 @@ export default function CleaningTasksPage() {
 
   const openCreateModal = () => {
     setEditingTask(null)
-    setFormData({ title: '', description: '', order: tasks.length })
+    setFormData({ title: '', description: '', frequency: 'EVERY_VISIT', order: tasks.length })
     setFormError('')
     setIsModalOpen(true)
   }
@@ -107,6 +122,7 @@ export default function CleaningTasksPage() {
     setFormData({
       title: task.title,
       description: task.description || '',
+      frequency: task.frequency,
       order: task.order,
     })
     setFormError('')
@@ -123,8 +139,8 @@ export default function CleaningTasksPage() {
       const method = editingTask ? 'PUT' : 'POST'
 
       const body = editingTask
-        ? { title: formData.title, description: formData.description || null, order: formData.order }
-        : { apartmentId: selectedApartmentId, title: formData.title, description: formData.description || null, order: formData.order }
+        ? { title: formData.title, description: formData.description || null, frequency: formData.frequency, order: formData.order }
+        : { apartmentId: selectedApartmentId, title: formData.title, description: formData.description || null, frequency: formData.frequency, order: formData.order }
 
       const res = await fetch(url, {
         method,
@@ -239,7 +255,14 @@ export default function CleaningTasksPage() {
                         </button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900">{task.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">{task.title}</p>
+                          {task.frequency !== 'EVERY_VISIT' && (
+                            <span className="text-xs font-medium text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">
+                              {FREQUENCY_LABELS[task.frequency]}
+                            </span>
+                          )}
+                        </div>
                         {task.description && (
                           <p className="text-sm text-gray-500 truncate">{task.description}</p>
                         )}
@@ -293,6 +316,22 @@ export default function CleaningTasksPage() {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
           />
+
+          <div>
+            <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-1">
+              How Often
+            </label>
+            <select
+              id="frequency"
+              value={formData.frequency}
+              onChange={(e) => setFormData({ ...formData, frequency: e.target.value as CleaningTaskFrequency })}
+              className="h-10 w-full rounded-md border border-gray-300 px-3"
+            >
+              {FREQUENCY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button

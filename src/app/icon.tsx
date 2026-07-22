@@ -17,7 +17,7 @@ export default function Icon() {
           borderRadius: '7px',
         }}
       >
-        <span style={{ fontSize: 20 }}>🌊</span>
+        <span style={{ fontSize: 20 }}>🏞️</span>
       </div>
     ),
     { ...size }

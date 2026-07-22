@@ -17,7 +17,15 @@ type Task = {
   id: string
   title: string
   description: string | null
+  frequency: 'EVERY_VISIT' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
   order: number
+}
+
+const FREQUENCY_LABELS: Record<Task['frequency'], string> = {
+  EVERY_VISIT: 'Every visit',
+  WEEKLY: 'Weekly',
+  MONTHLY: 'Monthly',
+  QUARTERLY: 'Quarterly',
 }
 
 type Completion = {
@@ -378,9 +386,16 @@ export default function CleanerVisitPage() {
                           : <Circle className="h-5 w-5 text-gray-400" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-medium ${isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                          {task.title}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`font-medium ${isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                            {task.title}
+                          </p>
+                          {task.frequency !== 'EVERY_VISIT' && (
+                            <span className="text-xs font-medium text-blue-700 bg-blue-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                              {FREQUENCY_LABELS[task.frequency]}
+                            </span>
+                          )}
+                        </div>
                         {task.description && (
                           <p className={`text-sm mt-0.5 ${isCompleted ? 'text-gray-300' : 'text-gray-500'}`}>
                             {task.description}

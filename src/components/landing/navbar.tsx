@@ -28,6 +28,9 @@ export function Navbar() {
             <Link href="/#amenities" className="text-xs tracking-widest uppercase text-stone-500 hover:text-stone-800 transition-colors">
               Amenities
             </Link>
+            <Link href="/#gallery" className="text-xs tracking-widest uppercase text-stone-500 hover:text-stone-800 transition-colors">
+              Gallery
+            </Link>
             <Link href="/#location" className="text-xs tracking-widest uppercase text-stone-500 hover:text-stone-800 transition-colors">
               Location
             </Link>
@@ -93,14 +96,14 @@ export function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-6 border-t border-stone-100">
             <div className="flex flex-col gap-4">
-              {['/#amenities', '/#location', '/#reviews', '/#contact'].map((href, i) => (
+              {['/#amenities', '/#gallery', '/#location', '/#reviews', '/#contact'].map((href, i) => (
                 <Link
                   key={href}
                   href={href}
                   className="text-xs tracking-widest uppercase text-stone-500 hover:text-stone-800 transition-colors py-1"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {['Amenities', 'Location', 'Reviews', 'Contact'][i]}
+                  {['Amenities', 'Gallery', 'Location', 'Reviews', 'Contact'][i]}
                 </Link>
               ))}
 
