@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
 import { Plus, Trash2, Upload, Images, ChevronUp, ChevronDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { GalleryPhoto } from '@/types'
 
 export default function GalleryPhotosPage() {
@@ -20,6 +21,8 @@ export default function GalleryPhotosPage() {
   const [uploadError, setUploadError] = useState('')
   const [caption, setCaption] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragFrom = useRef<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
 
   const fetchPhotos = async () => {
     try {
@@ -62,6 +65,36 @@ export default function GalleryPhotosPage() {
         credentials: 'include',
       }),
     ])
+    fetchPhotos()
+  }
+
+  const handleDrop = async (to: number) => {
+    const from = dragFrom.current
+    dragFrom.current = null
+    setDragOver(null)
+    if (from === null || from === to) return
+
+    const reordered = [...photos]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    setPhotos(reordered)
+
+    try {
+      await Promise.all(
+        reordered.map((p, i) =>
+          p.order === i
+            ? null
+            : fetch(`/api/gallery-photos/${p.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order: i }),
+                credentials: 'include',
+              })
+        )
+      )
+    } catch (err) {
+      console.error('[gallery-photos] reorder failed', err)
+    }
     fetchPhotos()
   }
 
@@ -175,12 +208,34 @@ export default function GalleryPhotosPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {photos.map((photo, index) => (
-            <Card key={photo.id} className={`overflow-hidden ${!photo.active ? 'opacity-50' : ''}`}>
+            <div
+              key={photo.id}
+              draggable
+              onDragStart={() => {
+                dragFrom.current = index
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(index)
+              }}
+              onDragLeave={() => setDragOver((d) => (d === index ? null : d))}
+              onDrop={() => handleDrop(index)}
+              onDragEnd={() => {
+                dragFrom.current = null
+                setDragOver(null)
+              }}
+              className={cn(
+                'cursor-grab active:cursor-grabbing rounded-lg',
+                dragOver === index && 'ring-2 ring-red-400'
+              )}
+            >
+            <Card className={`overflow-hidden ${!photo.active ? 'opacity-50' : ''}`}>
               <div className="relative h-48">
                 <Image
                   src={photo.imageUrl}
                   alt={photo.caption || `Gallery photo ${index + 1}`}
                   fill
+                  draggable={false}
                   className="object-cover"
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
@@ -232,6 +287,7 @@ export default function GalleryPhotosPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           ))}
         </div>
       )}
