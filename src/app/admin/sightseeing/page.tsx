@@ -131,9 +131,9 @@ export default function SightseeingPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
     if (!allowedTypes.includes(file.type)) {
-      setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+      setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC')
       return
     }
 
@@ -419,7 +419,7 @@ export default function SightseeingPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Click to upload an image</p>
-                    <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP or GIF (max 5MB)</p>
+                    <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP, GIF or HEIC (max 5MB)</p>
                   </div>
                 </div>
               </button>
@@ -428,7 +428,7 @@ export default function SightseeingPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
               onChange={handleFileChange}
               className="hidden"
             />

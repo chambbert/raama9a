@@ -36,13 +36,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
       }
 
-      const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+      const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
       const videoTypes = ['video/mp4', 'video/webm', 'video/quicktime']
       const mediaType = videoTypes.includes(file.type) ? 'VIDEO' : imageTypes.includes(file.type) ? 'IMAGE' : null
 
       if (!mediaType) {
         return NextResponse.json(
-          { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV' },
+          { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC, MP4, WebM, MOV' },
           { status: 400 }
         )
       }
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
         'image/png': '.png',
         'image/webp': '.webp',
         'image/gif': '.gif',
+        'image/heic': '.heic',
+        'image/heif': '.heif',
         'video/mp4': '.mp4',
         'video/webm': '.webm',
         'video/quicktime': '.mov',

@@ -6,8 +6,8 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 async function saveUploadedFile(file: File): Promise<string> {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  if (!allowedTypes.includes(file.type)) throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
+  if (!allowedTypes.includes(file.type)) throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC')
   if (file.size > 5 * 1024 * 1024) throw new Error('File size must be less than 5MB')
 
   const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
@@ -18,6 +18,8 @@ async function saveUploadedFile(file: File): Promise<string> {
     'image/png': '.png',
     'image/webp': '.webp',
     'image/gif': '.gif',
+    'image/heic': '.heic',
+    'image/heif': '.heif',
   }
   const ext = mimeToExt[file.type] ?? '.jpg'
   const filename = `instruction-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`

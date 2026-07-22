@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
       let imageUrl: string | undefined = undefined
 
       if (file && file.size > 0) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
         if (!allowedTypes.includes(file.type)) {
           return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
+            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC' },
             { status: 400 }
           )
         }
@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
           'image/png': '.png',
           'image/webp': '.webp',
           'image/gif': '.gif',
+          'image/heic': '.heic',
+          'image/heif': '.heif',
         }
         const ext = mimeToExt[file.type] ?? '.jpg'
         const filename = `sightseeing-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
