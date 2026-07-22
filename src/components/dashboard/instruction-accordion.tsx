@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, PlayCircle } from 'lucide-react'
+import { ChevronDown, PlayCircle, X } from 'lucide-react'
 import Image from 'next/image'
 import { AnimatedCard } from './animated-card'
 
@@ -34,6 +34,7 @@ export function InstructionAccordion({
   const [openCategories, setOpenCategories] = useState<Set<string>>(
     new Set(categories.length > 0 ? [categories[0]] : [])
   )
+  const [zoomedImage, setZoomedImage] = useState<{ url: string; alt: string } | null>(null)
 
   const toggleCategory = (category: string) => {
     setOpenCategories((prev) => {
@@ -89,7 +90,15 @@ export function InstructionAccordion({
                             } ${isMatch ? 'border-amber-300 bg-amber-50/80' : 'border-stone-100 bg-white/80'}`}
                           >
                             {instruction.imageUrl && (
-                              <div className="relative w-full h-40">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setZoomedImage({ url: instruction.imageUrl!, alt: instruction.title })
+                                }}
+                                className="relative block w-full h-40 cursor-zoom-in"
+                                aria-label={`View ${instruction.title} image full size`}
+                              >
                                 <Image
                                   src={instruction.imageUrl}
                                   alt={instruction.title}
@@ -97,7 +106,7 @@ export function InstructionAccordion({
                                   sizes="(max-width: 768px) 100vw, 50vw"
                                   className="object-cover"
                                 />
-                              </div>
+                              </button>
                             )}
                             <div className="p-5">
                               <div className="flex items-start justify-between gap-2 mb-2">
@@ -121,6 +130,29 @@ export function InstructionAccordion({
           </AnimatedCard>
         )
       })}
+
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-6 right-6 z-10 p-2 text-white/70 hover:text-white transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-7 w-7" />
+          </button>
+          <div className="relative w-full h-[85vh] mx-4">
+            <Image
+              src={zoomedImage.url}
+              alt={zoomedImage.alt}
+              fill
+              className="object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
