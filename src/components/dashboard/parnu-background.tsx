@@ -169,6 +169,64 @@ export function ParnuBackground() {
           strokeWidth="1"
         />
 
+        {/* ── River mouth beside the pier, running inland — the town reads as an island ── */}
+        <path
+          fill="url(#db-sea)"
+          d="M 1252,301 Q 1295,278 1345,272 Q 1395,268 1440,266
+             L 1440,278 Q 1392,280 1348,284 Q 1310,290 1318,301 Z"
+        />
+
+        {/* ── Beachgoers: sun umbrellas, towels, sunbathers ── */}
+        <g transform="translate(340,296) scale(1.8)">
+          <line x1="0" y1="0" x2="0" y2="-11" stroke="rgb(87,83,78)" strokeWidth="0.9" strokeOpacity="0.75" />
+          <path d="M -8,-10 Q 0,-17 8,-10 Z" fill="rgb(239,110,80)" fillOpacity="0.8" />
+        </g>
+        <rect x="352" y="292" width="16" height="6" rx="1" transform="rotate(-8 352 292)" fill="rgb(56,170,190)" fillOpacity="0.6" />
+        <g stroke="rgb(41,37,36)" strokeOpacity="0.7">
+          <line x1="355" y1="295" x2="364" y2="295" strokeWidth="2.2" />
+          <circle cx="366" cy="295" r="1.7" fill="rgb(41,37,36)" fillOpacity="0.7" stroke="none" />
+        </g>
+        <rect x="548" y="291" width="16" height="6" rx="1" transform="rotate(5 548 291)" fill="rgb(250,180,80)" fillOpacity="0.6" />
+        <g stroke="rgb(41,37,36)" strokeOpacity="0.7">
+          <line x1="550" y1="293" x2="559" y2="293" strokeWidth="2.2" />
+          <circle cx="561" cy="293" r="1.7" fill="rgb(41,37,36)" fillOpacity="0.7" stroke="none" />
+        </g>
+        <g transform="translate(760,292) scale(1.6)">
+          <line x1="0" y1="0" x2="0" y2="-11" stroke="rgb(87,83,78)" strokeWidth="0.9" strokeOpacity="0.75" />
+          <path d="M -8,-10 Q 0,-17 8,-10 Z" fill="rgb(56,170,190)" fillOpacity="0.8" />
+        </g>
+        <rect x="768" y="290" width="16" height="6" rx="1" transform="rotate(-5 768 290)" fill="rgb(239,110,80)" fillOpacity="0.6" />
+        <g transform="translate(150,299) scale(1.5)">
+          <line x1="0" y1="0" x2="0" y2="-11" stroke="rgb(87,83,78)" strokeWidth="0.9" strokeOpacity="0.75" />
+          <path d="M -8,-10 Q 0,-17 8,-10 Z" fill="rgb(250,180,80)" fillOpacity="0.8" />
+        </g>
+
+        {/* ── Kitesurfers ── */}
+        <g transform="translate(430,336) scale(1.3)">
+          <path d="M -22,-24 Q -12,-33 -1,-26 Q -12,-29 -22,-24 Z" fill="rgb(239,110,80)" fillOpacity="0.8" />
+          <line x1="-20.5" y1="-24.5" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <line x1="-3" y1="-26" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <path d="M 0,-1 Q -1,-3 -1.5,-5.5" stroke="rgb(41,37,36)" strokeWidth="1.3" fill="none" strokeOpacity="0.8" />
+          <circle cx="-1.7" cy="-6.8" r="1.3" fill="rgb(41,37,36)" fillOpacity="0.8" />
+          <line x1="-4.5" y1="0.8" x2="4.5" y2="-0.4" stroke="rgb(41,37,36)" strokeWidth="1.4" strokeOpacity="0.8" />
+        </g>
+        <g transform="translate(650,354) scale(1.5)">
+          <path d="M -22,-24 Q -12,-33 -1,-26 Q -12,-29 -22,-24 Z" fill="rgb(56,170,190)" fillOpacity="0.8" />
+          <line x1="-20.5" y1="-24.5" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <line x1="-3" y1="-26" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <path d="M 0,-1 Q -1,-3 -1.5,-5.5" stroke="rgb(41,37,36)" strokeWidth="1.3" fill="none" strokeOpacity="0.8" />
+          <circle cx="-1.7" cy="-6.8" r="1.3" fill="rgb(41,37,36)" fillOpacity="0.8" />
+          <line x1="-4.5" y1="0.8" x2="4.5" y2="-0.4" stroke="rgb(41,37,36)" strokeWidth="1.4" strokeOpacity="0.8" />
+        </g>
+        <g transform="translate(890,324) scale(1.05)">
+          <path d="M -22,-24 Q -12,-33 -1,-26 Q -12,-29 -22,-24 Z" fill="rgb(250,180,80)" fillOpacity="0.8" />
+          <line x1="-20.5" y1="-24.5" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <line x1="-3" y1="-26" x2="-1.5" y2="-5" stroke="rgb(68,64,60)" strokeWidth="0.4" strokeOpacity="0.5" />
+          <path d="M 0,-1 Q -1,-3 -1.5,-5.5" stroke="rgb(41,37,36)" strokeWidth="1.3" fill="none" strokeOpacity="0.8" />
+          <circle cx="-1.7" cy="-6.8" r="1.3" fill="rgb(41,37,36)" fillOpacity="0.8" />
+          <line x1="-4.5" y1="0.8" x2="4.5" y2="-0.4" stroke="rgb(41,37,36)" strokeWidth="1.4" strokeOpacity="0.8" />
+        </g>
+
         {/* ── Harbor pier ── */}
         <g>
           <line x1="1140" y1="296" x2="1140" y2="314" stroke="rgb(87,83,78)" strokeWidth="2.4" strokeOpacity="0.55" />
