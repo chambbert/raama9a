@@ -22,7 +22,7 @@ function noisePng(width: number, height: number): Promise<Buffer> {
 }
 
 function toFile(buffer: Buffer, name: string, type: string): File {
-  return new File([buffer], name, { type })
+  return new File([new Uint8Array(buffer)], name, { type })
 }
 
 async function cleanup(url: string) {

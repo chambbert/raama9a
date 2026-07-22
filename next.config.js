@@ -7,7 +7,7 @@ const nextConfig = {
     // middleware.ts matches all API routes, so its body buffer must cover the largest
     // upload we accept (50MB video) plus multipart overhead, or larger requests get
     // truncated mid-boundary and fail with a generic 500.
-    middlewareClientMaxBodySize: '60mb',
+    proxyClientMaxBodySize: '60mb',
   },
 }
 
