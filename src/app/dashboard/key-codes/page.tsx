@@ -17,11 +17,15 @@ export default async function KeyCodesPage({
   const now = new Date()
   // Guests only receive their login after payment, so a booking's key codes should be
   // visible as soon as it's confirmed — not just once check-in day arrives. Only
-  // already-completed stays (checkOut in the past) are excluded.
+  // already-completed stays are excluded — and checkOut is stored as midnight, so
+  // compare against the start of today to keep codes visible through check-out day
+  // (including same-day "0 night" visits).
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
   const activeVisit = await prisma.visit.findFirst({
     where: {
       userId: user.id,
-      OR: [{ checkOut: null }, { checkOut: { gte: now } }],
+      OR: [{ checkOut: null }, { checkOut: { gte: startOfToday } }],
     },
     orderBy: { checkIn: 'asc' },
     select: { apartmentId: true },
