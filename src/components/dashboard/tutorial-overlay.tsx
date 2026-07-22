@@ -35,8 +35,8 @@ function StepImages({ step }: { step: TutorialStep }) {
   if (images.length === 0) return <div className="h-1.5 bg-sky-600 w-full" />
 
   return (
-    <div className="relative h-56 w-full bg-stone-100 group">
-      <Image src={images[imgIndex]} alt={step.title} fill className="object-cover" />
+    <div className="relative h-64 md:h-80 w-full bg-stone-100 group">
+      <Image src={images[imgIndex]} alt={step.title} fill className="object-contain" />
 
       {images.length > 1 && (
         <>
