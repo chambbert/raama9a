@@ -12,8 +12,21 @@ export async function GET() {
   try {
     await requireAuth()
 
-    const instructions = await prisma.instruction.findMany({
+    const rows = await prisma.instruction.findMany({
       orderBy: [{ category: 'asc' }, { order: 'asc' }],
+    })
+
+    // imageUrls is stored as a JSON string; clients expect string[] | null
+    const instructions = rows.map((row) => {
+      let imageUrls: string[] | null = null
+      if (row.imageUrls) {
+        try {
+          imageUrls = JSON.parse(row.imageUrls)
+        } catch (e) {
+          console.error(`Malformed imageUrls on instruction ${row.id}:`, e)
+        }
+      }
+      return { ...row, imageUrls }
     })
 
     const grouped = instructions.reduce((acc, instruction) => {
