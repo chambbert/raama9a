@@ -7,10 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
-// There is no token-refresh flow, so a short access token just logs everyone
-// out after 15 minutes ("Forbidden" on admin saves, dead dashboard sessions).
-// Sessions last 7 days, same as the refresh window was meant to provide.
-const ACCESS_TOKEN_EXPIRY = '7d'
+// Short-lived access token; middleware.ts silently renews it (sliding 7-day
+// window) whenever it lapses and the refresh token is still valid. Keep the
+// token names/payload in sync with the renewal logic in src/middleware.ts.
+const ACCESS_TOKEN_EXPIRY = '15m'
 const REFRESH_TOKEN_EXPIRY = '7d'
 
 export interface JWTPayload {

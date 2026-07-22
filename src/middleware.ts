@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { jwtVerify } from 'jose'
+import { jwtVerify, SignJWT } from 'jose'
 
 interface JWTPayload {
   userId: string
@@ -23,6 +23,18 @@ async function verifyTokenEdge(token: string): Promise<JWTPayload | null> {
   }
 }
 
+async function signTokenEdge(payload: JWTPayload, expiresIn: string): Promise<string> {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  return new SignJWT({ userId: payload.userId, email: payload.email, role: payload.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(expiresIn)
+    .setIssuedAt()
+    .sign(new TextEncoder().encode(secret))
+}
+
 // Routes that require authentication (handled by page components now)
 const protectedRoutes: string[] = []
 const adminRoutes: string[] = []
@@ -40,7 +52,25 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
   // Verify token if exists (async for jose)
-  const payload = token ? await verifyTokenEdge(token) : null
+  let payload = token ? await verifyTokenEdge(token) : null
+
+  // Sliding session renewal: access token lapsed but refresh token still valid ->
+  // mint fresh tokens. The request's Cookie header is rewritten so this very
+  // request already authenticates; Set-Cookie on the response persists them.
+  let renewed: { accessToken: string; refreshToken: string } | null = null
+  if (!payload) {
+    const refreshToken = request.cookies.get('refreshToken')?.value
+    const refreshPayload = refreshToken ? await verifyTokenEdge(refreshToken) : null
+    if (refreshPayload) {
+      renewed = {
+        accessToken: await signTokenEdge(refreshPayload, '15m'),
+        refreshToken: await signTokenEdge(refreshPayload, '7d'),
+      }
+      payload = refreshPayload
+      request.cookies.set('accessToken', renewed.accessToken)
+      request.cookies.set('refreshToken', renewed.refreshToken)
+    }
+  }
 
   // Redirect to login if trying to access protected route without auth
   if (isProtectedRoute && !payload) {
@@ -63,7 +93,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const response = NextResponse.next()
+  // Forward the (possibly rewritten) request cookies to the app
+  const response = NextResponse.next({
+    request: { headers: request.headers },
+  })
+
+  if (renewed) {
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    }
+    response.cookies.set('accessToken', renewed.accessToken, cookieOptions)
+    response.cookies.set('refreshToken', renewed.refreshToken, cookieOptions)
+  }
 
   // Generate CSRF token and set as non-httpOnly cookie so JS can read it
   if (!request.cookies.get('csrfToken')?.value) {
