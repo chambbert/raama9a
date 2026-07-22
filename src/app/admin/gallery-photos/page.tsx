@@ -67,9 +67,9 @@ export default function GalleryPhotosPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault()
-    const file = fileInputRef.current?.files?.[0]
+    const files = fileInputRef.current?.files ? Array.from(fileInputRef.current.files) : []
 
-    if (!file) {
+    if (files.length === 0) {
       setUploadError('Please select a file')
       return
     }
@@ -77,34 +77,39 @@ export default function GalleryPhotosPage() {
     setUploading(true)
     setUploadError('')
 
-    try {
+    const failures: string[] = []
+    for (let i = 0; i < files.length; i++) {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', files[i])
       formData.append('caption', caption)
-      formData.append('order', photos.length.toString())
+      formData.append('order', (photos.length + i).toString())
 
-      const res = await fetch('/api/gallery-photos', {
-        credentials: 'include',
-        method: 'POST',
-        body: formData,
-      })
-
-      if (res.ok) {
-        setIsModalOpen(false)
-        setCaption('')
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ''
+      try {
+        const res = await fetch('/api/gallery-photos', {
+          credentials: 'include',
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          failures.push(`${files[i].name}: ${data.error || 'upload failed'}`)
         }
-        fetchPhotos()
-      } else {
-        const data = await res.json()
-        setUploadError(data.error || 'Failed to upload photo')
+      } catch {
+        failures.push(`${files[i].name}: upload failed`)
       }
-    } catch {
-      setUploadError('An error occurred')
-    } finally {
-      setUploading(false)
     }
+
+    if (failures.length === 0) {
+      setIsModalOpen(false)
+      setCaption('')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } else {
+      setUploadError(failures.join('; '))
+    }
+    fetchPhotos()
+    setUploading(false)
   }
 
   const handleDelete = async (id: string) => {
@@ -234,24 +239,25 @@ export default function GalleryPhotosPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Upload Gallery Photo"
+        title="Upload Gallery Photos"
       >
         <form onSubmit={handleUpload} className="space-y-4">
           {uploadError && <Alert variant="error">{uploadError}</Alert>}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Image File
+              Image Files
             </label>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+              multiple
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Max 5MB. Supported: JPEG, PNG, WebP, GIF, HEIC
+              Select one or more. Max 5MB each (larger images are auto-resized). Supported: JPEG, PNG, WebP, GIF, HEIC
             </p>
           </div>
 
@@ -260,7 +266,7 @@ export default function GalleryPhotosPage() {
             label="Caption (Optional)"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="e.g., Living room view"
+            placeholder="e.g., Living room view (applied to all selected photos)"
           />
 
           <div className="flex gap-3 pt-4">
