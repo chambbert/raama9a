@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
-import { writeFile, mkdir, unlink } from 'fs/promises'
+import { unlink } from 'fs/promises'
 import path from 'path'
+import { saveImageUpload, UploadError } from '@/lib/uploads'
 
 export async function PUT(
   request: NextRequest,
@@ -47,19 +48,14 @@ export async function PUT(
 
       // Handle new file upload
       if (file && file.size > 0) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
-        if (!allowedTypes.includes(file.type)) {
-          return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC' },
-            { status: 400 }
-          )
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-          return NextResponse.json(
-            { error: 'File size must be less than 5MB' },
-            { status: 400 }
-          )
+        let newImageUrl: string
+        try {
+          newImageUrl = await saveImageUpload(file, { prefix: 'sightseeing' })
+        } catch (e) {
+          if (e instanceof UploadError) {
+            return NextResponse.json({ error: e.message }, { status: 400 })
+          }
+          throw e
         }
 
         // Delete old uploaded image if exists
@@ -73,17 +69,7 @@ export async function PUT(
           }
         }
 
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadsDir, { recursive: true })
-
-        const ext = path.extname(file.name)
-        const filename = `sightseeing-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const filepath = path.join(uploadsDir, filename)
-
-        const bytes = await file.arrayBuffer()
-        await writeFile(filepath, Buffer.from(bytes))
-
-        data.imageUrl = `/uploads/${filename}`
+        data.imageUrl = newImageUrl
       }
 
       const item = await prisma.sightseeing.update({

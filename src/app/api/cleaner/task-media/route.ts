@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCleaner } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
-
-const ALLOWED_TYPES = [
-  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-  'video/mp4', 'video/quicktime', 'video/webm',
-]
+import { saveMediaUpload, UploadError } from '@/lib/uploads'
 
 const MAX_SIZE = 50 * 1024 * 1024 // 50MB
 
@@ -38,31 +32,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Validate file
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, MOV, WebM' },
-        { status: 400 }
-      )
+    // Validate + save file
+    let newUrl: string
+    try {
+      ;({ url: newUrl } = await saveMediaUpload(file, {
+        prefix: 'task',
+        imageMaxBytes: MAX_SIZE,
+        videoMaxBytes: MAX_SIZE,
+      }))
+    } catch (e) {
+      if (e instanceof UploadError) {
+        return NextResponse.json({ error: e.message }, { status: 400 })
+      }
+      throw e
     }
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 })
-    }
-
-    // Save file
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadsDir, { recursive: true })
-
-    const mimeToExt: Record<string, string> = {
-      'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif',
-      'video/mp4': '.mp4', 'video/quicktime': '.mov', 'video/webm': '.webm',
-    }
-    const ext = mimeToExt[file.type] ?? '.bin'
-    const filename = `task-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-    const filepath = path.join(uploadsDir, filename)
-    await writeFile(filepath, Buffer.from(await file.arrayBuffer()))
-
-    const newUrl = `/uploads/${filename}`
 
     // Upsert completion and append URL
     const existing = await prisma.taskCompletion.findUnique({

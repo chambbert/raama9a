@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, requireAdmin } from '@/lib/auth'
 import { sightseeingSchema } from '@/lib/validation'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { saveImageUpload, UploadError } from '@/lib/uploads'
 
 export async function GET() {
   try {
@@ -50,40 +49,14 @@ export async function POST(request: NextRequest) {
       let imageUrl: string | undefined = undefined
 
       if (file && file.size > 0) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
-        if (!allowedTypes.includes(file.type)) {
-          return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC' },
-            { status: 400 }
-          )
+        try {
+          imageUrl = await saveImageUpload(file, { prefix: 'sightseeing' })
+        } catch (e) {
+          if (e instanceof UploadError) {
+            return NextResponse.json({ error: e.message }, { status: 400 })
+          }
+          throw e
         }
-
-        if (file.size > 5 * 1024 * 1024) {
-          return NextResponse.json(
-            { error: 'File size must be less than 5MB' },
-            { status: 400 }
-          )
-        }
-
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadsDir, { recursive: true })
-
-        const mimeToExt: Record<string, string> = {
-          'image/jpeg': '.jpg',
-          'image/png': '.png',
-          'image/webp': '.webp',
-          'image/gif': '.gif',
-          'image/heic': '.heic',
-          'image/heif': '.heif',
-        }
-        const ext = mimeToExt[file.type] ?? '.jpg'
-        const filename = `sightseeing-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        const filepath = path.join(uploadsDir, filename)
-
-        const bytes = await file.arrayBuffer()
-        await writeFile(filepath, Buffer.from(bytes))
-
-        imageUrl = `/uploads/${filename}`
       }
 
       const validationResult = sightseeingSchema.safeParse({

@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:reset": "rm -f prisma/dev.db && npm run db:push",
     "typecheck": "tsc --noEmit",
+    "test:uploads": "tsx src/lib/uploads.smoke.ts",
     "clean": "rm -rf .next node_modules",
     "prebuild": "prisma generate"
   },
@@ -26,6 +27,7 @@
     "next": "^16.1.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.35.3",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.23.8"
   },

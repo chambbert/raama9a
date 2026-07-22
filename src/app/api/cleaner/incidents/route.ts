@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCleaner } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { saveMediaUpload, UploadError } from '@/lib/uploads'
 
-const ALLOWED_TYPES = [
-  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-  'video/mp4', 'video/quicktime', 'video/webm',
-]
 const MAX_SIZE = 50 * 1024 * 1024
 
 function parseMediaUrls(raw: string | null): string[] {
@@ -68,27 +63,19 @@ export async function POST(request: NextRequest) {
       const file = formData.get('file') as File | null
 
       if (file && file.size > 0) {
-        if (!ALLOWED_TYPES.includes(file.type)) {
-          return NextResponse.json(
-            { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, MOV, WebM' },
-            { status: 400 }
-          )
+        try {
+          const { url } = await saveMediaUpload(file, {
+            prefix: 'incident',
+            imageMaxBytes: MAX_SIZE,
+            videoMaxBytes: MAX_SIZE,
+          })
+          mediaUrls = [url]
+        } catch (e) {
+          if (e instanceof UploadError) {
+            return NextResponse.json({ error: e.message }, { status: 400 })
+          }
+          throw e
         }
-        if (file.size > MAX_SIZE) {
-          return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 })
-        }
-
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-        await mkdir(uploadsDir, { recursive: true })
-
-        const mimeToExt: Record<string, string> = {
-          'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif',
-          'video/mp4': '.mp4', 'video/quicktime': '.mov', 'video/webm': '.webm',
-        }
-        const ext = mimeToExt[file.type] ?? '.bin'
-        const filename = `incident-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-        await writeFile(path.join(uploadsDir, filename), Buffer.from(await file.arrayBuffer()))
-        mediaUrls = [`/uploads/${filename}`]
       }
     } else {
       const body = await request.json()

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { heroImageSchema } from '@/lib/validation'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { saveMediaUpload, UploadError } from '@/lib/uploads'
 
 export async function GET() {
   try {
@@ -36,54 +35,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
       }
 
-      const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
-      const videoTypes = ['video/mp4', 'video/webm', 'video/quicktime']
-      const mediaType = videoTypes.includes(file.type) ? 'VIDEO' : imageTypes.includes(file.type) ? 'IMAGE' : null
-
-      if (!mediaType) {
-        return NextResponse.json(
-          { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC, MP4, WebM, MOV' },
-          { status: 400 }
-        )
+      let mediaUrl: string, mediaType: 'IMAGE' | 'VIDEO'
+      try {
+        ;({ url: mediaUrl, mediaType } = await saveMediaUpload(file, { prefix: 'hero' }))
+      } catch (e) {
+        if (e instanceof UploadError) {
+          return NextResponse.json({ error: e.message }, { status: 400 })
+        }
+        throw e
       }
-
-      // Validate file size (5MB for images, 50MB for video)
-      const maxSize = mediaType === 'VIDEO' ? 50 * 1024 * 1024 : 5 * 1024 * 1024
-      if (file.size > maxSize) {
-        return NextResponse.json(
-          { error: `File size must be less than ${mediaType === 'VIDEO' ? '50MB' : '5MB'}` },
-          { status: 400 }
-        )
-      }
-
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-      await mkdir(uploadsDir, { recursive: true })
-
-      // Generate unique filename from MIME type (not user-supplied filename)
-      const mimeToExt: Record<string, string> = {
-        'image/jpeg': '.jpg',
-        'image/png': '.png',
-        'image/webp': '.webp',
-        'image/gif': '.gif',
-        'image/heic': '.heic',
-        'image/heif': '.heif',
-        'video/mp4': '.mp4',
-        'video/webm': '.webm',
-        'video/quicktime': '.mov',
-      }
-      const ext = mimeToExt[file.type] ?? '.jpg'
-      const filename = `hero-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`
-      const filepath = path.join(uploadsDir, filename)
-
-      // Write file
-      const bytes = await file.arrayBuffer()
-      await writeFile(filepath, Buffer.from(bytes))
 
       // Save to database
       const heroImage = await prisma.heroImage.create({
         data: {
-          mediaUrl: `/uploads/${filename}`,
+          mediaUrl,
           mediaType,
           title: title || null,
           order,
