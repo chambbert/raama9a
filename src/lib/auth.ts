@@ -7,7 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
-const ACCESS_TOKEN_EXPIRY = '15m'
+// There is no token-refresh flow, so a short access token just logs everyone
+// out after 15 minutes ("Forbidden" on admin saves, dead dashboard sessions).
+// Sessions last 7 days, same as the refresh window was meant to provide.
+const ACCESS_TOKEN_EXPIRY = '7d'
 const REFRESH_TOKEN_EXPIRY = '7d'
 
 export interface JWTPayload {
@@ -111,7 +114,7 @@ export function setAuthCookies(accessToken: string, refreshToken: string) {
   return {
     accessToken: {
       ...cookieOptions,
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 7 * 24 * 60 * 60, // 7 days, matches token expiry
     },
     refreshToken: {
       ...cookieOptions,
