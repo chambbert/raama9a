@@ -17,7 +17,7 @@ export default function AppleIcon() {
           borderRadius: '40px',
         }}
       >
-        <span style={{ fontSize: 110 }}>🌊</span>
+        <span style={{ fontSize: 92, fontWeight: 700, color: 'white', letterSpacing: '-4px' }}>9a</span>
       </div>
     ),
     { ...size }
