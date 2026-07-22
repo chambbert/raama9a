@@ -452,7 +452,7 @@ export function BookingCalendarWidget() {
           <Input
             id="adults"
             type="number"
-            label="Adults"
+            label="Visitors"
             min={1}
             max={4}
             value={bookingForm.adults}

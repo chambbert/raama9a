@@ -442,7 +442,7 @@ export default function BookingsPage() {
                 <User className="h-4 w-4 text-gray-400 mt-0.5" />
                 <div>
                   <p className="font-medium">{detailModal.guestName}</p>
-                  <p className="text-gray-500">{detailModal.adults} {detailModal.adults === 1 ? 'adult' : 'adults'}</p>
+                  <p className="text-gray-500">{detailModal.adults} {detailModal.adults === 1 ? 'visitor' : 'visitors'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">

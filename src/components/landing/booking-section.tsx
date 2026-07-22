@@ -553,14 +553,14 @@ export function BookingSection({ apartments }: BookingSectionProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Adults (max 4)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Visitors (max 4)</label>
                     <select
                       value={adults}
                       onChange={(e) => handleAdultsChange(Number(e.target.value))}
                       className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     >
                       {[1, 2, 3, 4].map((n) => (
-                        <option key={n} value={n}>{n} {n === 1 ? 'adult' : 'adults'}</option>
+                        <option key={n} value={n}>{n} {n === 1 ? 'visitor' : 'visitors'}</option>
                       ))}
                     </select>
                   </div>
