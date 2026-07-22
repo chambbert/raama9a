@@ -136,9 +136,9 @@ export default function InstructionsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
-      setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC')
+      setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF')
       return
     }
 
@@ -165,9 +165,9 @@ export default function InstructionsPage() {
 
   const handleTutorialImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
     for (const f of files) {
-      if (!allowedTypes.includes(f.type)) { setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC'); return }
+      if (!allowedTypes.includes(f.type)) { setFormError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF'); return }
       if (f.size > 5 * 1024 * 1024) { setFormError('File size must be less than 5MB'); return }
     }
     setFormError('')
@@ -475,7 +475,7 @@ export default function InstructionsPage() {
                   <input
                     ref={tutorialImagesRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     multiple
                     onChange={handleTutorialImagesChange}
                     className="hidden"
@@ -521,7 +521,7 @@ export default function InstructionsPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Click to upload an image</p>
-                    <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP, GIF or HEIC (max 5MB)</p>
+                    <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP or GIF (max 5MB)</p>
                   </div>
                 </div>
               </button>
@@ -530,7 +530,7 @@ export default function InstructionsPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={handleFileChange}
               className="hidden"
             />

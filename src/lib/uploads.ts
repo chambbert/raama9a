@@ -4,20 +4,20 @@ import path from 'path'
 
 export class UploadError extends Error {}
 
+// HEIC/HEIF is rejected: browsers can't display it and the server's prebuilt
+// sharp can't reliably decode it (patent-encumbered codec), so accepting it
+// produces permanently broken images.
 const IMAGE_MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
   'image/gif': '.gif',
-  'image/heic': '.heic',
-  'image/heif': '.heif',
 }
 const VIDEO_MIME_EXT: Record<string, string> = {
   'video/mp4': '.mp4',
   'video/quicktime': '.mov',
   'video/webm': '.webm',
 }
-// HEIC/HEIF excluded: prebuilt sharp binaries don't include libheif decode support
 const OPTIMIZABLE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 function mbLabel(bytes: number): string {
@@ -57,16 +57,13 @@ async function persist(buffer: Buffer, ext: string, prefix: string): Promise<str
 /** Image-only upload (instructions, sightseeing, gallery photos, reviews). Auto-shrinks oversized images. */
 export async function saveImageUpload(
   file: File,
-  opts: { prefix: string; allowHeic?: boolean; maxBytes?: number }
+  opts: { prefix: string; maxBytes?: number }
 ): Promise<string> {
-  const { prefix, allowHeic = true, maxBytes = 5 * 1024 * 1024 } = opts
-  const allowedTypes = allowHeic
-    ? Object.keys(IMAGE_MIME_EXT)
-    : ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const { prefix, maxBytes = 5 * 1024 * 1024 } = opts
 
-  if (!allowedTypes.includes(file.type)) {
+  if (!(file.type in IMAGE_MIME_EXT)) {
     throw new UploadError(
-      `Invalid file type. Allowed: ${allowHeic ? 'JPEG, PNG, WebP, GIF, HEIC' : 'JPEG, PNG, WebP, GIF'}`
+      'Invalid file type. Allowed: JPEG, PNG, WebP, GIF (iPhone HEIC photos must be exported as JPEG first)'
     )
   }
 
@@ -95,7 +92,7 @@ export async function saveMediaUpload(
   const isImage = file.type in IMAGE_MIME_EXT
 
   if (!isVideo && !isImage) {
-    throw new UploadError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, HEIC, MP4, MOV, WebM')
+    throw new UploadError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, MOV, WebM')
   }
 
   let buffer: Buffer = Buffer.from(await file.arrayBuffer())

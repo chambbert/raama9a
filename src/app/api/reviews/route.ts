@@ -5,7 +5,7 @@ import { reviewSchema } from '@/lib/validation'
 import { saveImageUpload } from '@/lib/uploads'
 
 function saveUploadedFile(file: File): Promise<string> {
-  return saveImageUpload(file, { prefix: 'review', allowHeic: false })
+  return saveImageUpload(file, { prefix: 'review' })
 }
 
 export async function GET(request: NextRequest) {

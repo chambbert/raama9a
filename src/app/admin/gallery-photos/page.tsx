@@ -307,13 +307,13 @@ export default function GalleryPhotosPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               multiple
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Select one or more. Max 5MB each (larger images are auto-resized). Supported: JPEG, PNG, WebP, GIF, HEIC
+              Select one or more. Max 5MB each (larger images are auto-resized). Supported: JPEG, PNG, WebP, GIF
             </p>
           </div>
 
