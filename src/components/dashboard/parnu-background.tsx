@@ -168,6 +168,48 @@ export function ParnuBackground() {
           strokeOpacity="0.5"
           strokeWidth="1"
         />
+
+        {/* ── Pärnu city flag on the beach ── */}
+        <g>
+          <line x1="1150" y1="297" x2="1150" y2="226" stroke="rgb(68,64,60)" strokeWidth="1.4" strokeOpacity="0.8" />
+          <g fillOpacity="0.9">
+            <rect x="1150.7" y="227" width="32" height="19" fill="rgb(0,102,180)" />
+            <rect x="1158.7" y="227" width="4.8" height="19" fill="white" />
+            <rect x="1150.7" y="234.2" width="32" height="4.8" fill="white" />
+          </g>
+        </g>
+
+        {/* ── Pärnu county crest: gold shield, black rampant bear ── */}
+        <g transform="translate(285,188) scale(0.6)" opacity="0.9">
+          <path
+            d="M2,2 L34,2 L34,28 Q34,40 18,44 Q2,40 2,28 Z"
+            fill="rgb(253,224,71)"
+            stroke="rgb(28,25,23)"
+            strokeOpacity="0.6"
+            strokeWidth="1.2"
+          />
+          <path
+            fill="rgb(28,25,23)"
+            d="M 8.5,11.5
+               Q 9,9.8 11,8.6
+               Q 12.2,7.8 13.2,7.6
+               Q 13.5,6.4 14.6,6.8
+               Q 15.6,7.2 16.4,8.4
+               Q 19.5,10 21.5,13.5
+               Q 23.6,17 24,21.5
+               Q 24.2,24.5 23.6,26.2
+               L 25.4,27 Q 25.9,28.4 24.4,29.2
+               Q 23.9,31.8 22.4,34.4
+               L 23,38 L 19.4,38 L 19.9,34.4
+               Q 18.7,32.2 17.6,30.6
+               L 16,34 L 16.5,38 L 12.9,38 L 13.5,33
+               Q 12,28 12.5,23
+               L 9,21.5 L 7.4,19.4 L 10.6,18.6
+               Q 11.4,17.2 11.9,15.6
+               L 8,14 L 7,11.8 L 10.2,11.4
+               Q 9.3,11.5 8.5,11.5 Z"
+          />
+        </g>
       </svg>
     </div>
   )
