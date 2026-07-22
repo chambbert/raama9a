@@ -1,15 +1,17 @@
 export function ParnuBackground() {
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 pointer-events-none select-none z-0"
+      className="fixed bottom-14 lg:bottom-0 left-0 right-0 pointer-events-none select-none z-0 overflow-hidden flex justify-center"
       style={{ height: '52vh' }}
       aria-hidden="true"
     >
+      {/* min-w keeps the scene readable on phones: it center-crops instead of
+          shrinking to a sliver that hides behind the mobile bottom nav */}
       <svg
         viewBox="0 0 1440 380"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMax meet"
-        className="w-full h-full"
+        className="h-full w-full min-w-[1100px] flex-shrink-0"
       >
         <defs>
           {/* Sky glow near horizon */}
