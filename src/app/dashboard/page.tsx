@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { findActiveVisit } from '@/lib/visits'
 import { redirect } from 'next/navigation'
 import { Key, Book, MapPin, Star, Calendar } from 'lucide-react'
 import Link from 'next/link'
@@ -13,14 +14,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/login')
 
   const now = new Date()
-  const activeVisit = await prisma.visit.findFirst({
-    where: {
-      userId: user.id,
-      checkIn: { lte: now },
-      OR: [{ checkOut: null }, { checkOut: { gte: now } }],
-    },
-    include: { apartment: true },
-  })
+  const activeVisit = await findActiveVisit(user.id)
 
   const [keyCodesCount, instructionsCount, sightseeingCount, tutorialSteps, tutorialProgress] =
     await Promise.all([

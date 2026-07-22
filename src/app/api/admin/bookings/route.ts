@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { adminBookingSchema } from '@/lib/validation'
-import { hasBookingConflict, calculateBookingPrice, ensureClientAccount } from '@/lib/booking'
+import { hasBookingConflict, calculateBookingPrice, ensureVisitForBooking } from '@/lib/booking'
 
 export async function GET(request: NextRequest) {
   try {
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       include: { apartment: true },
     })
 
-    await ensureClientAccount(guestEmail, guestName, guestPhone)
+    await ensureVisitForBooking(booking)
 
     return NextResponse.json({
       booking: {

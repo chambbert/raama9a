@@ -64,11 +64,11 @@ export function calculateBookingPrice(apartment: PricedApartment, checkIn: Date,
 // and see instructions/key codes for their stay.
 export async function ensureClientAccount(guestEmail: string, guestName: string, guestPhone?: string | null) {
   const existing = await prisma.user.findUnique({ where: { email: guestEmail } })
-  if (existing) return
+  if (existing) return existing
 
   const plain = generateGuestPassword()
   const hashed = await hashPassword(plain)
-  await prisma.user.create({
+  return prisma.user.create({
     data: {
       email: guestEmail,
       name: guestName,
@@ -76,6 +76,40 @@ export async function ensureClientAccount(guestEmail: string, guestName: string,
       password: hashed,
       generatedPassword: plain,
       role: 'CLIENT',
+    },
+  })
+}
+
+// A confirmed booking becomes an operational Visit (key codes, cleaning, revenue)
+// linked to the guest's account — no manual admin step needed. Idempotent: repeated
+// confirmations of the same stay don't create duplicates.
+export async function ensureVisitForBooking(booking: {
+  guestEmail: string
+  guestName: string
+  guestPhone?: string | null
+  apartmentId: string
+  checkIn: Date
+  checkOut: Date
+  totalPrice: number
+  cleanerFee: number
+  notes?: string | null
+}) {
+  const user = await ensureClientAccount(booking.guestEmail, booking.guestName, booking.guestPhone)
+
+  const existing = await prisma.visit.findFirst({
+    where: { userId: user.id, apartmentId: booking.apartmentId, checkIn: booking.checkIn },
+  })
+  if (existing) return existing
+
+  return prisma.visit.create({
+    data: {
+      userId: user.id,
+      apartmentId: booking.apartmentId,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      revenue: booking.totalPrice,
+      costs: booking.cleanerFee,
+      notes: booking.notes ?? null,
     },
   })
 }

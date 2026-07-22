@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { findActiveVisit } from '@/lib/visits'
 import { redirect } from 'next/navigation'
 import { Lock } from 'lucide-react'
 import { KeyCodeCard } from '@/components/dashboard/key-code-card'
@@ -15,21 +16,7 @@ export default async function KeyCodesPage({
   const { highlight } = await searchParams
 
   const now = new Date()
-  // Guests only receive their login after payment, so a booking's key codes should be
-  // visible as soon as it's confirmed — not just once check-in day arrives. Only
-  // already-completed stays are excluded — and checkOut is stored as midnight, so
-  // compare against the start of today to keep codes visible through check-out day
-  // (including same-day "0 night" visits).
-  const startOfToday = new Date(now)
-  startOfToday.setHours(0, 0, 0, 0)
-  const activeVisit = await prisma.visit.findFirst({
-    where: {
-      userId: user.id,
-      OR: [{ checkOut: null }, { checkOut: { gte: startOfToday } }],
-    },
-    orderBy: { checkIn: 'asc' },
-    select: { apartmentId: true },
-  })
+  const activeVisit = await findActiveVisit(user.id)
 
   const keyCodes = activeVisit
     ? await prisma.keyCode.findMany({

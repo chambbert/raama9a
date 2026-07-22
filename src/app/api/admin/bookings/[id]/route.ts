@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
-import { ensureClientAccount } from '@/lib/booking'
+import { ensureVisitForBooking } from '@/lib/booking'
 import { z } from 'zod'
 
 const updateBookingSchema = z.object({
@@ -47,9 +47,10 @@ export async function PUT(
       include: { apartment: true },
     })
 
-    // Auto-create a CLIENT account when a booking is confirmed
+    // Confirming a booking creates the guest's CLIENT account and the operational
+    // Visit (key codes, cleaning, revenue) in one step.
     if (result.data.status === 'CONFIRMED') {
-      await ensureClientAccount(booking.guestEmail, booking.guestName, booking.guestPhone)
+      await ensureVisitForBooking(updated)
     }
 
     return NextResponse.json({
