@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { GalleryPhoto } from '@/types'
@@ -11,6 +11,7 @@ interface GallerySectionProps {
 
 export function GallerySection({ photos }: GallerySectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const touchStartX = useRef<number | null>(null)
 
   if (photos.length === 0) return null
 
@@ -50,10 +51,23 @@ export function GallerySection({ photos }: GallerySectionProps) {
         <div
           className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center"
           onClick={() => setOpenIndex(null)}
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX
+          }}
+          onTouchEnd={(e) => {
+            const start = touchStartX.current
+            touchStartX.current = null
+            if (start === null) return
+            const dx = e.changedTouches[0].clientX - start
+            if (Math.abs(dx) > 50) {
+              if (dx > 0) showPrevious()
+              else showNext()
+            }
+          }}
         >
           <button
             onClick={() => setOpenIndex(null)}
-            className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
+            className="absolute top-6 right-6 z-10 p-2 text-white/70 hover:text-white transition-colors"
             aria-label="Close"
           >
             <X className="h-7 w-7" />
@@ -63,14 +77,14 @@ export function GallerySection({ photos }: GallerySectionProps) {
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); showPrevious() }}
-                className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                className="absolute left-2 md:left-8 top-1/2 -translate-y-1/2 z-10 p-3 text-white/70 hover:text-white transition-colors"
                 aria-label="Previous photo"
               >
                 <ChevronLeft className="h-8 w-8" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); showNext() }}
-                className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                className="absolute right-2 md:right-8 top-1/2 -translate-y-1/2 z-10 p-3 text-white/70 hover:text-white transition-colors"
                 aria-label="Next photo"
               >
                 <ChevronRight className="h-8 w-8" />
