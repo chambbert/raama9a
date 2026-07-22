@@ -304,7 +304,7 @@ export default function InstructionsPage() {
                 {categoryItems.map((item, index) => (
                   <Card key={item.id} className="overflow-hidden">
                     {item.imageUrl && (
-                      <div className="relative h-40">
+                      <div className="relative h-56">
                         <Image
                           src={item.imageUrl}
                           alt={item.title}
@@ -493,7 +493,7 @@ export default function InstructionsPage() {
 
             {imagePreview ? (
               <div className="relative rounded-lg overflow-hidden border border-gray-200">
-                <div className="relative h-40">
+                <div className="relative h-56">
                   <Image
                     src={imagePreview}
                     alt="Preview"

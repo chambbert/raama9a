@@ -96,7 +96,7 @@ export function InstructionAccordion({
                                   e.stopPropagation()
                                   setZoomedImage({ url: instruction.imageUrl!, alt: instruction.title })
                                 }}
-                                className="relative block w-full h-40 cursor-zoom-in"
+                                className="relative block w-full h-56 cursor-zoom-in"
                                 aria-label={`View ${instruction.title} image full size`}
                               >
                                 <Image
