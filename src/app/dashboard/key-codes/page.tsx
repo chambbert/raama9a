@@ -15,12 +15,15 @@ export default async function KeyCodesPage({
   const { highlight } = await searchParams
 
   const now = new Date()
+  // Guests only receive their login after payment, so a booking's key codes should be
+  // visible as soon as it's confirmed — not just once check-in day arrives. Only
+  // already-completed stays (checkOut in the past) are excluded.
   const activeVisit = await prisma.visit.findFirst({
     where: {
       userId: user.id,
-      checkIn: { lte: now },
       OR: [{ checkOut: null }, { checkOut: { gte: now } }],
     },
+    orderBy: { checkIn: 'asc' },
     select: { apartmentId: true },
   })
 
@@ -63,7 +66,7 @@ export default async function KeyCodesPage({
           <p className="text-sm text-stone-400">
             {activeVisit
               ? 'No key codes assigned yet. Contact your host.'
-              : 'Key codes will appear here during your stay.'}
+              : 'Key codes will appear here once your booking is confirmed.'}
           </p>
         </div>
       ) : (
