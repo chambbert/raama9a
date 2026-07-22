@@ -75,7 +75,7 @@ export function HeroCarousel({ images, siteName }: HeroCarouselProps) {
         <div className="text-center text-white px-4">
           <p className="text-xs tracking-widest uppercase text-white/70 mb-6">Pärnu · Estonia</p>
           <h1 className="font-serif-display text-5xl md:text-8xl font-light tracking-wide drop-shadow-sm mb-4">
-            Rääma 9a
+            Rääma 9a-8
           </h1>
           <div className="w-12 h-px bg-white/50 mx-auto mb-4" />
           <p className="text-xs tracking-widest uppercase text-white/70">
