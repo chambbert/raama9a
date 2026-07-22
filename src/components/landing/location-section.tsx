@@ -8,6 +8,10 @@ interface LocationSectionProps {
 export function LocationSection({ address, mapUrl }: LocationSectionProps) {
   if (!address) return null
 
+  // No embed URL configured in settings -> fall back to a keyless Google Maps
+  // embed built from the address, so the map works out of the box.
+  const embedUrl = mapUrl || `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
+
   return (
     <section className="py-24 bg-white">
       <div className="container mx-auto px-6">
@@ -25,10 +29,10 @@ export function LocationSection({ address, mapUrl }: LocationSectionProps) {
             <p className="text-sm tracking-wide text-stone-500">{address}</p>
           </div>
 
-          {mapUrl ? (
+          {embedUrl ? (
             <div className="aspect-video overflow-hidden border border-stone-100">
               <iframe
-                src={mapUrl}
+                src={embedUrl}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
