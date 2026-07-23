@@ -156,6 +156,13 @@ export function BookingSection({ apartments }: BookingSectionProps) {
     [blockedRanges],
   )
 
+  // Day another guest checks in (from 14:00) — its morning is still free, so it
+  // can serve as the new booking's check-out day (check-out is by 11:00).
+  const isExistingCheckInDay = useCallback((date: Date) =>
+    blockedRanges.some((r) => isSameDay(new Date(r.checkIn), date)),
+    [blockedRanges],
+  )
+
   // Date click
   const handleDateClick = useCallback((date: Date) => {
     if (!checkIn || (checkIn && checkOut)) {
@@ -286,7 +293,13 @@ export function BookingSection({ apartments }: BookingSectionProps) {
 
     const isPast = date < today
     const isBlocked = isDateBlocked(date)
-    const disabled = isPast || isBlocked
+    // Occupied nights can still end a stay if it's another guest's arrival day:
+    // our guest leaves by 11:00, theirs arrives from 14:00.
+    const turnoverSelectable = !!(
+      isBlocked && !isPast && isExistingCheckInDay(date) &&
+      checkIn && !checkOut && date > checkIn && !rangeContainsBlocked(checkIn, date)
+    )
+    const disabled = isPast || (isBlocked && !turnoverSelectable)
 
     const isStart = !!(checkIn && isSameDay(date, checkIn))
     const isEnd = !!(checkOut && isSameDay(date, checkOut))
@@ -323,8 +336,13 @@ export function BookingSection({ apartments }: BookingSectionProps) {
             {formatEuro(price)}
           </span>
         )}
-        {isBlocked && !isPast && (
+        {isBlocked && !isPast && !isStart && !isEnd && (
           <span className="absolute inset-x-1.5 top-1/2 border-t border-gray-300 pointer-events-none" />
+        )}
+        {turnoverSelectable && !isEnd && (
+          <span className="absolute bottom-0.5 text-[8px] leading-none text-gray-400 pointer-events-none">
+            until 11:00
+          </span>
         )}
       </div>
     )
@@ -471,6 +489,10 @@ export function BookingSection({ apartments }: BookingSectionProps) {
                 ].join(' ')}>
                   {selectionLabel}
                 </div>
+
+                <p className="text-xs text-gray-400 px-1">
+                  Check-in from 14:00 · Check-out by 11:00
+                </p>
 
                 {/* Price breakdown */}
                 {checkIn && checkOut && hasPricing && (

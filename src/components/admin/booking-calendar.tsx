@@ -72,6 +72,13 @@ function eventCoversDate(ev: CalendarEvent, ds: string): boolean {
   return ci <= ds && ds < co
 }
 
+// Departure morning: guest leaves by 11:00, so the day is free for a new
+// check-in (from 14:00) but should still show who is leaving.
+function eventDepartsOnDate(ev: CalendarEvent, ds: string): boolean {
+  const co = ev.data.checkOut ? String(ev.data.checkOut).split('T')[0] : null
+  return co === ds
+}
+
 const STATUS_BG: Record<string, string> = {
   CONFIRMED: 'bg-emerald-500',
   PENDING: 'bg-amber-400',
@@ -262,6 +269,7 @@ export function BookingCalendarWidget() {
               }
               const ds = toDs(date)
               const evs = allEvents.filter((ev) => eventCoversDate(ev, ds))
+              const departures = allEvents.filter((ev) => eventDepartsOnDate(ev, ds))
               const isToday = ds === todayDs
 
               return (
@@ -300,6 +308,18 @@ export function BookingCalendarWidget() {
                     {evs.length > 3 && (
                       <div className="text-[9px] text-gray-400 pl-1">+{evs.length - 3}</div>
                     )}
+                    {departures.slice(0, 2).map((ev, i) => {
+                      const label = ev.type === 'booking' ? ev.data.guestName : ev.data.user.name
+                      return (
+                        <div
+                          key={`dep-${i}`}
+                          className="border border-gray-300 bg-white text-gray-500 text-[9px] leading-tight rounded px-1 py-px truncate"
+                          title={`${label} checks out by 11:00 — day is free for a new check-in from 14:00`}
+                        >
+                          → {label}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -320,6 +340,11 @@ export function BookingCalendarWidget() {
               <span className="w-2.5 h-2.5 rounded-sm bg-blue-400 inline-block flex-shrink-0" />
               Visit
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm border border-gray-300 bg-white inline-block flex-shrink-0" />
+              Departure — free from 14:00
+            </span>
+            <span className="ml-auto text-gray-400">Check-in 14:00 · Check-out 11:00</span>
           </div>
         </>
       )}
