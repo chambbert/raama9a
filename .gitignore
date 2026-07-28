@@ -35,6 +35,8 @@ next-env.d.ts
 
 # Prisma
 prisma/dev.db
+# stray root-level db created by running prisma from the wrong cwd
+/dev.db
 prisma/dev.db-journal
 
 # Uploads
