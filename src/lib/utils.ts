@@ -21,6 +21,17 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+/**
+ * Password for an admin-created account, meant to be read aloud or pasted into a message.
+ * The alphabet omits I/l/1/0/O so a guest retyping it can't pick the wrong character.
+ */
+export function generatePassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*'
+  const bytes = new Uint32Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
+}
+
 export function generateCSRFToken(): string {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)

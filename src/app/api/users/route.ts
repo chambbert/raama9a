@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         password: hashedPassword,
+        generatedPassword: password,
         name,
         phone,
         role,
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
         name: true,
         phone: true,
         role: true,
+        generatedPassword: true,
         createdAt: true,
       },
     })

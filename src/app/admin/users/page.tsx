@@ -8,8 +8,8 @@ import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
-import { formatCurrency, formatDate, getInitials } from '@/lib/utils'
-import { Plus, Edit, Trash2, User, Mail, Phone, DollarSign, Calendar, Eye, EyeOff, Copy, Check as CheckIcon } from 'lucide-react'
+import { formatCurrency, formatDate, getInitials, generatePassword } from '@/lib/utils'
+import { Plus, Edit, Trash2, User, Mail, Phone, DollarSign, Calendar, Eye, EyeOff, Copy, Check as CheckIcon, Shuffle } from 'lucide-react'
 import type { ClientCard } from '@/types'
 
 export default function UsersPage() {
@@ -28,6 +28,7 @@ export default function UsersPage() {
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showGenPassword, setShowGenPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [copied, setCopied] = useState(false)
   const [roleFilter, setRoleFilter] = useState<string>('all')
 
@@ -56,6 +57,7 @@ export default function UsersPage() {
     setFormData({ name: '', email: '', phone: '', password: '', role: 'CLIENT' as 'ADMIN' | 'CLIENT' | 'CLEANER' })
     setFormError('')
     setShowGenPassword(false)
+    setShowPassword(false)
     setCopied(false)
     setIsModalOpen(true)
   }
@@ -71,8 +73,14 @@ export default function UsersPage() {
     })
     setFormError('')
     setShowGenPassword(false)
+    setShowPassword(false)
     setCopied(false)
     setIsModalOpen(true)
+  }
+
+  const handleGeneratePassword = () => {
+    setFormData((prev) => ({ ...prev, password: generatePassword() }))
+    setShowPassword(true)
   }
 
   const copyPassword = (pwd: string) => {
@@ -357,15 +365,50 @@ export default function UsersPage() {
             </div>
           )}
 
-          <Input
-            id="password"
-            type="password"
-            label={editingUser ? 'Set new password (leave blank to keep current)' : 'Password (min 8 characters)'}
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required={!editingUser}
-            minLength={editingUser ? undefined : 8}
-          />
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              {editingUser ? 'Set new password (leave blank to keep current)' : 'Password (min 8 characters)'}
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required={!editingUser}
+                  minLength={editingUser ? undefined : 8}
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                className="flex-shrink-0 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+                title="Generate random password"
+              >
+                <Shuffle className="h-4 w-4" />
+              </button>
+              {formData.password && (
+                <button
+                  type="button"
+                  onClick={() => copyPassword(formData.password)}
+                  className="flex-shrink-0 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+                  title="Copy password"
+                >
+                  {copied ? <CheckIcon className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </button>
+              )}
+            </div>
+          </div>
 
           <Select
             id="role"
