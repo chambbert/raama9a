@@ -599,24 +599,36 @@ export function BookingSection({ apartments }: BookingSectionProps) {
                         <span className="text-xs text-gray-400">Guest {idx + 1}</span>
                       </div>
                       <div>
+                        <label
+                          htmlFor={`visitor-name-${idx}`}
+                          className="block text-xs font-medium text-gray-600 mb-1"
+                        >
+                          Full name
+                        </label>
                         <input
+                          id={`visitor-name-${idx}`}
                           type="text"
                           value={v.name}
                           onChange={(e) => updateVisitor(idx, 'name', e.target.value)}
-                          placeholder="Full name"
                           required
                           minLength={2}
                           className="w-full h-9 rounded-md border border-gray-300 px-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
                       <div>
+                        <label
+                          htmlFor={`visitor-birthdate-${idx}`}
+                          className="block text-xs font-medium text-gray-600 mb-1"
+                        >
+                          Date of birth
+                        </label>
                         <input
+                          id={`visitor-birthdate-${idx}`}
                           type="date"
                           value={v.birthdate}
                           onChange={(e) => updateVisitor(idx, 'birthdate', e.target.value)}
                           max={new Date().toISOString().split('T')[0]}
                           required
-                          title="Date of birth"
                           className="w-full h-9 rounded-md border border-gray-300 px-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
