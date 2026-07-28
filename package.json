@@ -14,6 +14,8 @@
     "db:reset": "rm -f prisma/dev.db && npm run db:push",
     "typecheck": "tsc --noEmit",
     "test:uploads": "tsx src/lib/uploads.smoke.ts",
+    "test:visits": "tsx src/lib/visits.smoke.ts",
+    "optimize:uploads": "tsx scripts/optimize-existing-uploads.ts",
     "clean": "rm -rf .next node_modules",
     "prebuild": "prisma generate"
   },

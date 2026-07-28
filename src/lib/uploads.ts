@@ -1,4 +1,4 @@
-import sharp from 'sharp'
+import sharp, { type Metadata } from 'sharp'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
@@ -19,9 +19,50 @@ const VIDEO_MIME_EXT: Record<string, string> = {
   'video/webm': '.webm',
 }
 const OPTIMIZABLE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+// GIF is deliberately excluded from display normalization: re-encoding drops animation frames.
+// It keeps the old behaviour of only being touched when it blows the hard size limit.
+const NORMALIZE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+// Phone cameras produce ~11MP files (2731x4096, 1.5MB measured on prod) that we then display in a
+// 224px-tall thumbnail. `images.unoptimized: true` (see next.config.js) means nothing downstream
+// ever resizes them, so every viewer pays the full download *and* a ~45MB decode per image. This
+// upload path is the only place a resize can happen, so it always happens here.
+const DISPLAY_MAX_EDGE = 1920
+const DISPLAY_TARGET_BYTES = 500 * 1024
 
 function mbLabel(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))}MB`
+}
+
+/**
+ * Caps an image at display resolution. Already-small images pass through untouched so we never
+ * re-encode (and degrade) something that's fine as-is.
+ */
+async function normalizeForDisplay(
+  buffer: Buffer,
+  ext: string
+): Promise<{ buffer: Buffer; ext: string }> {
+  let metadata: Metadata
+  try {
+    metadata = await sharp(buffer).metadata()
+  } catch (err) {
+    console.error('[uploads] sharp could not decode upload:', err)
+    throw new UploadError('That file could not be read as an image')
+  }
+
+  const longEdge = Math.max(metadata.width ?? 0, metadata.height ?? 0)
+  if (longEdge <= DISPLAY_MAX_EDGE && buffer.length <= DISPLAY_TARGET_BYTES) {
+    return { buffer, ext }
+  }
+
+  const resized = sharp(buffer)
+    .rotate()
+    .resize({ width: DISPLAY_MAX_EDGE, height: DISPLAY_MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+
+  // JPEG has no alpha channel, so a transparent PNG would flatten to black. Those stay PNG.
+  return metadata.hasAlpha
+    ? { buffer: await resized.png({ compressionLevel: 9 }).toBuffer(), ext: '.png' }
+    : { buffer: await resized.jpeg({ quality: 80, mozjpeg: true }).toBuffer(), ext: '.jpg' }
 }
 
 // Re-encodes as JPEG, stepping quality down then resolution down, until it fits maxBytes.
@@ -70,6 +111,10 @@ export async function saveImageUpload(
   let buffer: Buffer = Buffer.from(await file.arrayBuffer())
   let ext = IMAGE_MIME_EXT[file.type]
 
+  if (NORMALIZE_TYPES.has(file.type)) {
+    ({ buffer, ext } = await normalizeForDisplay(buffer, ext))
+  }
+
   if (buffer.length > maxBytes && OPTIMIZABLE_TYPES.has(file.type)) {
     buffer = await optimizeImage(buffer, maxBytes)
     ext = '.jpg'
@@ -98,6 +143,10 @@ export async function saveMediaUpload(
   let buffer: Buffer = Buffer.from(await file.arrayBuffer())
   let ext = isVideo ? VIDEO_MIME_EXT[file.type] : IMAGE_MIME_EXT[file.type]
   const maxBytes = isVideo ? videoMaxBytes : imageMaxBytes
+
+  if (NORMALIZE_TYPES.has(file.type)) {
+    ({ buffer, ext } = await normalizeForDisplay(buffer, ext))
+  }
 
   if (!isVideo && buffer.length > maxBytes && OPTIMIZABLE_TYPES.has(file.type)) {
     buffer = await optimizeImage(buffer, maxBytes)
