@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/alert'
 import { LoadingScreen } from '@/components/ui/spinner'
 import { Plus, Edit, Trash2, Calendar, X } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { VisitGuestsField } from '@/components/admin/visit-guests-field'
 import type { Visit, User, Apartment } from '@/types'
 
 type LineItem = {
@@ -21,6 +22,7 @@ type LineItem = {
 
 type VisitWithRelations = Visit & {
   user: Pick<User, 'id' | 'name' | 'email'>
+  guests?: Pick<User, 'id' | 'name' | 'email'>[]
   apartment: Apartment
   lineItems?: LineItem[]
   cleaner?: Pick<User, 'id' | 'name' | 'email'> | null
@@ -37,6 +39,7 @@ export default function VisitsPage() {
   const [editingItem, setEditingItem] = useState<VisitWithRelations | null>(null)
   const [formData, setFormData] = useState({
     userId: '',
+    guestIds: [] as string[],
     apartmentId: '',
     cleanerId: '',
     checkIn: '',
@@ -84,6 +87,7 @@ export default function VisitsPage() {
     setEditingItem(null)
     setFormData({
       userId: users[0]?.id || '',
+      guestIds: [],
       apartmentId: apartments[0]?.id || '',
       cleanerId: '',
       checkIn: new Date().toISOString().split('T')[0],
@@ -100,6 +104,7 @@ export default function VisitsPage() {
     setEditingItem(item)
     setFormData({
       userId: item.userId,
+      guestIds: item.guests?.map((g) => g.id) || [],
       apartmentId: item.apartmentId,
       cleanerId: item.cleanerId || '',
       checkIn: new Date(item.checkIn).toISOString().split('T')[0],
@@ -295,6 +300,11 @@ export default function VisitsPage() {
                         <td className="py-3 px-4">
                           <p className="font-medium">{visit.user.name}</p>
                           <p className="text-xs text-gray-500">{visit.user.email}</p>
+                          {visit.guests && visit.guests.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              + {visit.guests.map((g) => g.name).join(', ')}
+                            </p>
+                          )}
                         </td>
                         <td className="py-3 px-4">{visit.apartment.name}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">
@@ -371,10 +381,18 @@ export default function VisitsPage() {
           {formError && <Alert variant="error">{formError}</Alert>}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Guest</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Primary guest</label>
             <select
               value={formData.userId}
-              onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+              // Promoting an extra guest to primary must drop them from the extras, or they'd be
+              // counted twice in the picker.
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  userId: e.target.value,
+                  guestIds: formData.guestIds.filter((id) => id !== e.target.value),
+                })
+              }
               className="w-full h-10 rounded-md border border-gray-300 px-3"
               required
             >
@@ -383,6 +401,14 @@ export default function VisitsPage() {
               ))}
             </select>
           </div>
+
+          <VisitGuestsField
+            users={users}
+            primaryUserId={formData.userId}
+            selectedIds={formData.guestIds}
+            onChange={(guestIds) => setFormData({ ...formData, guestIds })}
+            onUserCreated={(user) => setUsers((prev) => [...prev, user])}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Apartment</label>

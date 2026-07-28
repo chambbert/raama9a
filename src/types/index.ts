@@ -83,6 +83,8 @@ export interface Visit {
   notes: string | null
   createdAt: Date
   user?: User
+  /** Extra guests sharing the stay, each with their own login. Excludes the primary `user`. */
+  guests?: Pick<User, 'id' | 'name' | 'email'>[]
   apartment?: Apartment
   cleaner?: User | null
 }

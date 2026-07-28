@@ -42,6 +42,9 @@ export const apartmentSchema = z.object({
 // Visit schemas
 export const visitSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
+  // Extra guests sharing the stay, each with their own login. Not a Visit column — the route
+  // pulls this out and connects the relation.
+  guestIds: z.array(z.string()).optional().default([]),
   apartmentId: z.string().min(1, 'Apartment ID is required'),
   cleanerId: z.string().nullable().optional(),
   checkIn: z.string().transform((str) => new Date(str)),

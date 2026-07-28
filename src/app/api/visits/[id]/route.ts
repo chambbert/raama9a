@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
+import { VISIT_INCLUDE } from '@/lib/visits'
 
 export async function PUT(
   request: NextRequest,
@@ -11,7 +12,17 @@ export async function PUT(
     const { id } = await params
 
     const body = await request.json()
-    const { checkIn, checkOut, revenue, costs, notes, apartmentId, userId, cleanerId, lineItems } = body
+    const { checkIn, checkOut, revenue, costs, notes, apartmentId, userId, guestIds, cleanerId, lineItems } = body
+
+    // Extra guests are replaced wholesale, so unchecking someone in the admin UI revokes their
+    // access. The primary guest is filtered out because they already have access via `userId` and
+    // would otherwise be listed twice.
+    let guestSet: { id: string }[] | undefined
+    if (Array.isArray(guestIds)) {
+      const primaryId =
+        userId ?? (await prisma.visit.findUnique({ where: { id }, select: { userId: true } }))?.userId
+      guestSet = guestIds.filter((guestId: string) => guestId !== primaryId).map((guestId: string) => ({ id: guestId }))
+    }
 
     // First update the visit
     const visit = await prisma.visit.update({
@@ -24,6 +35,7 @@ export async function PUT(
         ...(notes !== undefined && { notes }),
         ...(apartmentId !== undefined && { apartmentId }),
         ...(userId !== undefined && { userId }),
+        ...(guestSet !== undefined && { guests: { set: guestSet } }),
         ...('cleanerId' in body && { cleanerId: cleanerId || null }),
       },
     })
@@ -51,16 +63,7 @@ export async function PUT(
     // Fetch the updated visit with relations
     const updatedVisit = await prisma.visit.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
-        apartment: true,
-        lineItems: true,
-        cleaner: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      include: VISIT_INCLUDE,
     })
 
     return NextResponse.json({ visit: updatedVisit })

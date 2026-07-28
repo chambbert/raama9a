@@ -19,6 +19,7 @@ model User {
   updatedAt         DateTime @updatedAt
 
   visits           Visit[]
+  guestVisits      Visit[]           @relation("VisitGuests")
   cleanerVisits    Visit[]           @relation("CleanerVisits")
   reviews          Review[]
   tutorialProgress TutorialProgress?
@@ -56,7 +57,11 @@ model Visit {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // `user` is the primary guest: the one who booked, and who revenue is attributed to.
+  // `guests` are the additional people sharing the stay, each with their own login. They see the
+  // same key codes and instructions but are not the billing contact.
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guests      User[]    @relation("VisitGuests")
   apartment   Apartment @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
   cleaner     User?     @relation("CleanerVisits", fields: [cleanerId], references: [id], onDelete: SetNull)
   lineItems       VisitLineItem[]

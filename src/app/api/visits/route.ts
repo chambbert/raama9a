@@ -2,22 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { visitSchema } from '@/lib/validation'
+import { VISIT_INCLUDE } from '@/lib/visits'
 
 export async function GET() {
   try {
     await requireAdmin()
 
     const visits = await prisma.visit.findMany({
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
-        apartment: true,
-        lineItems: true,
-        cleaner: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      include: VISIT_INCLUDE,
       orderBy: { checkIn: 'desc' },
     })
 
@@ -50,9 +42,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { guestIds, ...visitFields } = validationResult.data
+
     const visit = await prisma.visit.create({
       data: {
-        ...validationResult.data,
+        ...visitFields,
+        // The primary guest already has access; listing them again would show them twice.
+        guests: {
+          connect: guestIds.filter((id) => id !== visitFields.userId).map((id) => ({ id })),
+        },
         lineItems: lineItems && lineItems.length > 0 ? {
           create: lineItems.map((item: { type: string; description: string; amount: number }) => ({
             type: item.type,
@@ -61,16 +59,7 @@ export async function POST(request: NextRequest) {
           })),
         } : undefined,
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, phone: true },
-        },
-        apartment: true,
-        lineItems: true,
-        cleaner: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      include: VISIT_INCLUDE,
     })
 
     return NextResponse.json({ visit }, { status: 201 })
