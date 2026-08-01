@@ -72,16 +72,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <TutorialLauncher
-        steps={parsedTutorialSteps}
-        autoShow={!tutorialProgress && parsedTutorialSteps.length > 0}
-      />
       {/* Greeting */}
-      <div>
-        <p className="text-xs tracking-widest uppercase text-sky-600 mb-1">{greeting}</p>
-        <h1 className="font-serif-display text-3xl font-light text-stone-800 tracking-wide">
-          {user.name}
-        </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs tracking-widest uppercase text-sky-600 mb-1">{greeting}</p>
+          <h1 className="font-serif-display text-3xl font-light text-stone-800 tracking-wide">
+            {user.name}
+          </h1>
+        </div>
+        <TutorialLauncher
+          steps={parsedTutorialSteps}
+          autoShow={!tutorialProgress && parsedTutorialSteps.length > 0}
+        />
       </div>
 
       <SearchBar />
