@@ -83,11 +83,14 @@ export function InstructionAccordion({
                           <div
                             id={instruction.id}
                             onClick={instruction.isTutorial && onPlayTutorial ? () => onPlayTutorial(instruction.id) : undefined}
+                            // Cards carry no shadow or radius by design, so the border is the only
+                            // thing separating one instruction from the next -- stone-100 was too
+                            // faint against the translucent white to read as an edge at all.
                             className={`border overflow-hidden backdrop-blur-sm transition-colors ${
                               instruction.isTutorial && onPlayTutorial
                                 ? 'cursor-pointer hover:border-sky-300 hover:bg-sky-50/50'
                                 : ''
-                            } ${isMatch ? 'border-amber-300 bg-amber-50/80' : 'border-stone-100 bg-white/80'}`}
+                            } ${isMatch ? 'border-amber-300 bg-amber-50/80' : 'border-stone-300 bg-white/90'}`}
                           >
                             {instruction.imageUrl && (
                               <button
