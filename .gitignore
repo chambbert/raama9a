@@ -42,3 +42,6 @@ prisma/dev.db-journal
 # Uploads
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Session handover notes — local only, never shipped
+HANDOVER.md
